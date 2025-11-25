@@ -1,0 +1,2 @@
+# whiteboard
+Prototype whiteboard application
