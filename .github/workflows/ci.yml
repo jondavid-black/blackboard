@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: "pyproject.toml"
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Install Playwright browsers
+      run: uv run playwright install --with-deps
+
+    - name: Lint with Ruff
+      run: uv run ruff check
+
+    - name: Check formatting with Ruff
+      run: uv run ruff format
+
+    - name: Run Unit Tests
+      run: uv run pytest
+
+    - name: Run BDD Tests
+      # xvfb-run is used to provide a virtual display for any GUI operations
+      # that might be triggered implicitly, ensuring the test suite is robust.
+      run: xvfb-run uv run behave

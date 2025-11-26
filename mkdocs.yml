@@ -1,0 +1,6 @@
+site_name: Whiteboard
+theme:
+  name: material
+
+nav:
+  - Home: index.md
