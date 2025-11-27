@@ -1,4 +1,4 @@
-from whiteboard.models import Shape, Line, Rectangle, Circle, Text, Path, ToolType
+from blackboard.models import Shape, Line, Rectangle, Circle, Text, Path, ToolType
 
 
 def test_shape_defaults():

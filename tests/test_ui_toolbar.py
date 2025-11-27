@@ -1,7 +1,7 @@
 import flet as ft
-from whiteboard.ui.toolbar import Toolbar
-from whiteboard.state.app_state import AppState
-from whiteboard.models import ToolType
+from blackboard.ui.toolbar import Toolbar
+from blackboard.state.app_state import AppState
+from blackboard.models import ToolType
 
 
 def test_toolbar_initialization():

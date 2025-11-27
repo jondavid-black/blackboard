@@ -1,6 +1,6 @@
 # Unit Tests
 
-This directory contains unit tests for the Whiteboard application.
+This directory contains unit tests for the Blackboard application.
 
 **Framework**: `pytest`
 **Command**: `uv run pytest`

@@ -5,7 +5,7 @@ from ..state.app_state import AppState
 from ..models import ToolType, Shape, Line, Rectangle, Circle, Text, Path
 
 
-class WhiteboardCanvas(cv.Canvas):
+class BlackboardCanvas(cv.Canvas):
     def __init__(self, app_state: AppState):
         self.app_state = app_state
         super().__init__(

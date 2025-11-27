@@ -1,14 +1,14 @@
 import flet as ft
 import flet.canvas as flet_canvas
 from unittest.mock import MagicMock
-from whiteboard.ui.canvas import WhiteboardCanvas
-from whiteboard.state.app_state import AppState
-from whiteboard.models import ToolType, Line
+from blackboard.ui.canvas import BlackboardCanvas
+from blackboard.state.app_state import AppState
+from blackboard.models import ToolType, Line
 
 
 def test_canvas_initialization():
     app_state = AppState()
-    canvas = WhiteboardCanvas(app_state)
+    canvas = BlackboardCanvas(app_state)
     assert canvas.shapes == []
     assert canvas.expand is True
 
@@ -16,7 +16,7 @@ def test_canvas_initialization():
 def test_canvas_pan_start_drawing_line():
     app_state = AppState()
     app_state.set_tool(ToolType.LINE)
-    canvas = WhiteboardCanvas(app_state)
+    canvas = BlackboardCanvas(app_state)
 
     # Mock event
     # Flet events are wrappers around ControlEvent with data parsed from JSON
@@ -43,7 +43,7 @@ def test_canvas_pan_start_drawing_line():
 def test_canvas_pan_update_drawing_line():
     app_state = AppState()
     app_state.set_tool(ToolType.LINE)
-    canvas = WhiteboardCanvas(app_state)
+    canvas = BlackboardCanvas(app_state)
 
     # Start
     e_start = MagicMock(spec=ft.DragStartEvent)
@@ -74,7 +74,7 @@ def test_canvas_pan_update_drawing_line():
 
 def test_canvas_render_shapes():
     app_state = AppState()
-    canvas = WhiteboardCanvas(app_state)
+    canvas = BlackboardCanvas(app_state)
 
     # Mock update to avoid error
     canvas.update = lambda: None

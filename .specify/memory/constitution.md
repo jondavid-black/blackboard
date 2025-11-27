@@ -5,7 +5,7 @@ Sync Impact Report:
 - Added sections: Technology Stack, Development Workflow
 - Templates requiring updates: tasks-template.md (✅ updated)
 -->
-# Whiteboard Constitution
+# Blackboard Constitution
 
 ## Core Principles
 

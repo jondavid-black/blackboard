@@ -2,7 +2,7 @@ from behave import given, when, then
 from playwright.sync_api import Page, expect
 
 
-@given("the whiteboard application is running")  # type: ignore
+@given("the blackboard application is running")  # type: ignore
 def step_impl_app_running(context):
     # The application is started in environment.py
     pass

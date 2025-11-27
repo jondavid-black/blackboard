@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 
 @fixture
-def start_whiteboard_app(context):
+def start_blackboard_app(context):
     # Start the Flet app in web mode
     # We use a specific port to ensure we know where to connect
     port = 8550
@@ -43,7 +43,7 @@ def browser_context(context):
 
 
 def before_all(context):
-    use_fixture(start_whiteboard_app, context)
+    use_fixture(start_blackboard_app, context)
 
 
 def before_scenario(context, scenario):

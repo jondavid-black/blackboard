@@ -1,10 +1,10 @@
-# Whiteboard Documentation
+# Blackboard Documentation
 
-Welcome to the Whiteboard project documentation.
+Welcome to the Blackboard project documentation.
 
 ## Overview
 
-Whiteboard is a collaborative whiteboard application allowing users to draw shapes, lines, text, and manipulate the canvas via pan/zoom.
+Blackboard is a collaborative blackboard application allowing users to draw shapes, lines, text, and manipulate the canvas via pan/zoom.
 
 ## Architecture
 

@@ -1,6 +1,6 @@
-# Whiteboard
+# Blackboard
 
-A prototype whiteboard application built with [Flet](https://flet.dev/) (Flutter for Python). This application allows users to draw on a canvas using different tools like a pen and select shapes.
+A prototype blackboard application built with [Flet](https://flet.dev/) (Flutter for Python). This application allows users to draw on a canvas using different tools like a pen and select shapes.
 
 ## Features
 

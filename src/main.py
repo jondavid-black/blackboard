@@ -1,12 +1,12 @@
 import os
 import flet as ft
-from whiteboard.state.app_state import AppState
-from whiteboard.ui.toolbar import Toolbar
-from whiteboard.ui.canvas import WhiteboardCanvas
+from blackboard.state.app_state import AppState
+from blackboard.ui.toolbar import Toolbar
+from blackboard.ui.canvas import BlackboardCanvas
 
 
 def main(page: ft.Page):
-    page.title = "Whiteboard"
+    page.title = "Blackboard"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
     page.spacing = 0
@@ -14,7 +14,7 @@ def main(page: ft.Page):
     app_state = AppState()
 
     toolbar = Toolbar(app_state)
-    canvas = WhiteboardCanvas(app_state)
+    canvas = BlackboardCanvas(app_state)
 
     # Layout: Toolbar on top (or floating), Canvas fills the rest
     page.add(

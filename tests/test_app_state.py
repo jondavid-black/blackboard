@@ -1,5 +1,5 @@
-from whiteboard.state.app_state import AppState
-from whiteboard.models import ToolType, Line
+from blackboard.state.app_state import AppState
+from blackboard.models import ToolType, Line
 
 
 class MockListener:
