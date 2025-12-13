@@ -1,0 +1,44 @@
+{
+  "view": {
+    "pan_x": 0.0,
+    "pan_y": 0.0,
+    "zoom": 1.0
+  },
+  "shapes": [
+    {
+      "id": "b5f32589-3799-4037-b9ba-550a71e774de",
+      "type": "rectangle",
+      "x": 821.0,
+      "y": 290.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 184.0,
+      "height": 144.0
+    },
+    {
+      "id": "fd2e576c-47e5-4a61-b120-c2eada2e43cc",
+      "type": "line",
+      "x": 903.0,
+      "y": 365.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "end_x": 962.0,
+      "end_y": 676.0
+    },
+    {
+      "id": "00a104f4-1571-408b-9368-af83be9391b5",
+      "type": "circle",
+      "x": 962.0,
+      "y": 676.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius": 85.0881895447306
+    }
+  ]
+}

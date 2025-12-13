@@ -30,15 +30,47 @@ class MockStorageService:
     def list_files(self) -> List[str]:
         return self.files
 
+    def list_folders(self) -> List[str]:
+        # In a mock, we can just return a fixed list or infer from files.
+        # For simplicity, let's return any explicit folders plus inferred ones.
+        folders = set(self.folders) if hasattr(self, "folders") else set()
+        for f in self.files:
+            if "/" in f or "\\" in f:
+                parts = f.replace("\\", "/").split("/")
+                # Add all parent directories
+                for i in range(len(parts) - 1):
+                    folders.add("/".join(parts[: i + 1]))
+        return sorted(list(folders))
+
     def get_current_filename(self) -> str:
         return self.current_file
 
     def create_file(self, filename: str) -> str:
         if not filename.endswith(".json"):
             filename += ".json"
+
+        # In this mock, we just add it to the list.
+        # If it has a path "folder/file.json", we assume folder creation is implicit or handled.
         if filename not in self.files:
             self.files.append(filename)
         return filename
+
+    def create_folder(self, folder_name: str):
+        if not hasattr(self, "folders"):
+            self.folders = []
+        if folder_name not in self.folders:
+            self.folders.append(folder_name)
+
+    def delete_folder(self, folder_name: str):
+        # Remove folder and any files inside it
+        if hasattr(self, "folders") and folder_name in self.folders:
+            self.folders.remove(folder_name)
+
+        # Remove files starting with folder_name/
+        prefix = folder_name + "/"
+        self.files = [
+            f for f in self.files if not f.replace("\\", "/").startswith(prefix)
+        ]
 
     def switch_file(self, filename: str):
         if filename in self.files:

@@ -1,0 +1,33 @@
+{
+  "view": {
+    "pan_x": 0.0,
+    "pan_y": 0.0,
+    "zoom": 1.0
+  },
+  "shapes": [
+    {
+      "id": "a011fd7f-bdd3-4e26-a877-62b1d5607d21",
+      "type": "line",
+      "x": 799.0,
+      "y": 213.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "end_x": 1120.0,
+      "end_y": 460.0
+    },
+    {
+      "id": "b154a2dd-2fd5-4bc8-bde9-4bcc4088fafb",
+      "type": "rectangle",
+      "x": 1190.0,
+      "y": 322.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 200.0,
+      "height": 196.0
+    }
+  ]
+}

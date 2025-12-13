@@ -88,6 +88,9 @@ class AppState:
     def list_files(self) -> List[str]:
         return self.storage.list_files()
 
+    def list_folders(self) -> List[str]:
+        return self.storage.list_folders()
+
     def get_current_filename(self) -> str:
         return self.storage.get_current_filename()
 
@@ -100,6 +103,10 @@ class AppState:
         )
         self.storage.create_file(filename)
         self.switch_file(filename)
+
+    def create_folder(self, folder_name: str):
+        self.storage.create_folder(folder_name)
+        self.notify()
 
     def switch_file(self, filename: str):
         # Save current state before switching
@@ -123,6 +130,16 @@ class AppState:
             self._reload_from_storage()
         else:
             # Just notify so the file list updates
+            self.notify()
+
+    def delete_folder(self, folder_name: str):
+        current_before = self.get_current_filename()
+        self.storage.delete_folder(folder_name)
+        current_after = self.get_current_filename()
+
+        if current_before != current_after:
+            self._reload_from_storage()
+        else:
             self.notify()
 
     def _reload_from_storage(self):

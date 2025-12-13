@@ -1,0 +1,57 @@
+{
+  "view": {
+    "pan_x": 0.0,
+    "pan_y": 0.0,
+    "zoom": 1.0
+  },
+  "shapes": [
+    {
+      "id": "d7e8f7e8-1f80-4267-90ac-05dbaa4e6d4f",
+      "type": "rectangle",
+      "x": 760.0,
+      "y": 263.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 202.0,
+      "height": 244.0
+    },
+    {
+      "id": "302eb670-d3ab-47da-bef6-8091141168f0",
+      "type": "rectangle",
+      "x": 1118.0,
+      "y": 460.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 338.0,
+      "height": 265.0
+    },
+    {
+      "id": "41bb953c-11d4-4089-b75b-d502222492c3",
+      "type": "rectangle",
+      "x": 1020.0,
+      "y": 329.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 49.0,
+      "height": 59.0
+    },
+    {
+      "id": "edfedf26-c45c-48d7-940a-b9300254627e",
+      "type": "rectangle",
+      "x": 1043.0,
+      "y": 356.0,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 283.0,
+      "height": 266.0
+    }
+  ]
+}

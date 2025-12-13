@@ -17,6 +17,8 @@ class SideRail(ft.Container):
                     icon=ft.Icons.FOLDER_OPEN,
                     selected_icon=ft.Icons.FOLDER,
                     label="Files",
+                    # Add data to help testing if needed, though Flet keys don't always expose to DOM in canvas mode.
+                    # We rely on the label being exposed to accessibility tools.
                 ),
                 ft.NavigationRailDestination(
                     icon=ft.Icons.TUNE, selected_icon=ft.Icons.TUNE, label="Tools"

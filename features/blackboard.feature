@@ -9,3 +9,4 @@ Feature: Blackboard Application
     Then the page title should be "Blackboard"
     And I should see the toolbar
     And I should see the canvas
+

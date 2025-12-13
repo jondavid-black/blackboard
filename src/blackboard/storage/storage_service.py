@@ -21,9 +21,10 @@ class StorageService:
             os.makedirs(DATA_DIR)
 
     def _get_initial_file(self) -> str:
-        files = [f for f in os.listdir(DATA_DIR) if f.endswith(".json")]
-        if files:
-            return os.path.join(DATA_DIR, files[0])
+        for root, _, files in os.walk(DATA_DIR):
+            for f in files:
+                if f.endswith(".json"):
+                    return os.path.join(root, f)
 
         default_path = os.path.join(DATA_DIR, DEFAULT_FILE)
         # Create empty default file if it doesn't exist
@@ -35,13 +36,44 @@ class StorageService:
         return default_path
 
     def list_files(self) -> List[str]:
-        return [f for f in os.listdir(DATA_DIR) if f.endswith(".json")]
+        """
+        Returns a list of all .json files relative to DATA_DIR.
+        Example: ['default.json', 'folder/project.json']
+        """
+        file_list = []
+        for root, _, files in os.walk(DATA_DIR):
+            for f in files:
+                if f.endswith(".json"):
+                    # Get path relative to DATA_DIR
+                    full_path = os.path.join(root, f)
+                    rel_path = os.path.relpath(full_path, DATA_DIR)
+                    file_list.append(rel_path)
+        return sorted(file_list)
+
+    def list_folders(self) -> List[str]:
+        """
+        Returns a list of all folders relative to DATA_DIR.
+        Example: ['folder', 'folder/subfolder']
+        """
+        folder_list = []
+        for root, dirs, _ in os.walk(DATA_DIR):
+            for d in dirs:
+                full_path = os.path.join(root, d)
+                rel_path = os.path.relpath(full_path, DATA_DIR)
+                folder_list.append(rel_path)
+        return sorted(folder_list)
 
     def create_file(self, filename: str) -> str:
         if not filename.endswith(".json"):
             filename += ".json"
 
         path = os.path.join(DATA_DIR, filename)
+
+        # Ensure parent directory exists
+        parent_dir = os.path.dirname(path)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
+
         if os.path.exists(path):
             raise FileExistsError(f"File {filename} already exists")
 
@@ -50,6 +82,13 @@ class StorageService:
                 {"shapes": [], "view": {"pan_x": 0.0, "pan_y": 0.0, "zoom": 1.0}}, f
             )
         return path
+
+    def create_folder(self, folder_name: str):
+        path = os.path.join(DATA_DIR, folder_name)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        else:
+            raise FileExistsError(f"Folder {folder_name} already exists")
 
     def switch_file(self, filename: str):
         path = os.path.join(DATA_DIR, filename)
@@ -65,11 +104,30 @@ class StorageService:
         os.remove(path)
 
         # If we deleted the current file, switch to default or first available
-        if path == self.current_file:
+        # We need to normalize paths for comparison
+        abs_current = os.path.abspath(self.current_file)
+        abs_deleted = os.path.abspath(path)
+
+        if abs_current == abs_deleted:
             self.current_file = self._get_initial_file()
 
+    def delete_folder(self, folder_name: str):
+        path = os.path.join(DATA_DIR, folder_name)
+        if os.path.exists(path) and os.path.isdir(path):
+            # Check if current file is inside this folder
+            abs_current = os.path.abspath(self.current_file)
+            abs_folder = os.path.abspath(path)
+
+            if abs_current.startswith(abs_folder):
+                self.current_file = self._get_initial_file()
+
+            import shutil
+
+            shutil.rmtree(path)
+
     def get_current_filename(self) -> str:
-        return os.path.basename(self.current_file)
+        # Return path relative to DATA_DIR
+        return os.path.relpath(self.current_file, DATA_DIR)
 
     def load_data(self) -> Tuple[List[Shape], Dict[str, float]]:
         if not os.path.exists(self.current_file):
