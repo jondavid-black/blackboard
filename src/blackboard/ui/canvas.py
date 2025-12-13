@@ -472,6 +472,8 @@ class BlackboardCanvas(cv.Canvas):
 
     def on_pan_start(self, e: ft.DragStartEvent):
         wx, wy = self.to_world(e.local_x, e.local_y)
+        self.last_wx = wx
+        self.last_wy = wy
 
         if self.app_state.current_tool == ToolType.ERASER:
             hit_shape = self.hit_test(wx, wy)
@@ -496,9 +498,6 @@ class BlackboardCanvas(cv.Canvas):
                     else:
                         # It is a path. We start "erasing" points.
                         # We need to track that we are erasing this path.
-                        self.current_drawing_shape = (
-                            hit_shape  # Reusing this to track active shape
-                        )
                         self._erase_points_in_path(hit_shape, wx, wy)
                 else:
                     self.app_state.remove_shape(hit_shape)
@@ -649,8 +648,10 @@ class BlackboardCanvas(cv.Canvas):
 
         points_removed = False
 
-        for px, py in path.points:
-            if math.hypot(px - wx, py - wy) < eraser_radius:
+        for i, (px, py) in enumerate(path.points):
+            dist = math.hypot(px - wx, py - wy)
+            is_erased = dist < eraser_radius
+            if is_erased:
                 # Point is erased.
                 points_removed = True
                 if current_segment:
@@ -882,7 +883,11 @@ class BlackboardCanvas(cv.Canvas):
                 self.current_drawing_shape.radius_y = ry
 
             elif isinstance(self.current_drawing_shape, Path):
-                self.current_drawing_shape.points.append((wx, wy))
+                if (
+                    not self.current_drawing_shape.points
+                    or self.current_drawing_shape.points[-1] != (wx, wy)
+                ):
+                    self.current_drawing_shape.points.append((wx, wy))
 
             self.app_state.notify()
 
