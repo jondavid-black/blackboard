@@ -10,19 +10,19 @@ def test_toolbar_initialization():
 
     assert isinstance(toolbar, ft.Container)
     assert isinstance(toolbar.content, ft.Row)
-    # Hand, Selection, Pen, Line, Rect, Circle, Text = 7 buttons + divider + zoom out + zoom text + zoom in = 11 controls
-    assert len(toolbar.content.controls) == 11
+    # Hand, Selection, Pen, Eraser, Line, Rect, Circle, Text = 8 buttons + divider + zoom out + zoom text + zoom in = 12 controls
+    assert len(toolbar.content.controls) == 12
 
 
 def test_toolbar_button_click():
     app_state = AppState()
     toolbar = Toolbar(app_state)
 
-    # The controls are in order: HAND, SELECTION, PEN, LINE, RECTANGLE, CIRCLE, TEXT
+    # The controls are in order: HAND, SELECTION, PEN, ERASER, LINE, RECTANGLE, CIRCLE, TEXT
     row = toolbar.content
     assert isinstance(row, ft.Row), f"Toolbar content is not a Row, got {type(row)}"
     assert row.controls is not None, "Toolbar Row does not have 'controls' attribute"
-    rect_btn = row.controls[4]  # Rectangle
+    rect_btn = row.controls[5]  # Rectangle (was 4, now 5 because of Eraser)
 
     # Simulate click
     # For Flet Button, the event handler is usually 'on_click'

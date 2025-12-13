@@ -55,6 +55,7 @@ class Toolbar(ft.Container):
                 self._build_tool_button(ToolType.HAND, ft.Icons.PAN_TOOL),
                 self._build_tool_button(ToolType.SELECTION, ft.Icons.SELECT_ALL),
                 self._build_tool_button(ToolType.PEN, ft.Icons.EDIT),
+                self._build_tool_button(ToolType.ERASER, ft.Icons.AUTO_FIX_NORMAL),
                 self._build_tool_button(ToolType.LINE, ft.Icons.SHOW_CHART),
                 self._build_tool_button(ToolType.RECTANGLE, ft.Icons.CROP_SQUARE),
                 self._build_tool_button(ToolType.CIRCLE, ft.Icons.CIRCLE_OUTLINED),

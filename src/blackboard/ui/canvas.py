@@ -435,10 +435,74 @@ class BlackboardCanvas(cv.Canvas):
                     and shape.y <= wy <= shape.y + shape.font_size
                 ):
                     return shape
+
+            elif isinstance(shape, Path):
+                if not shape.points:
+                    continue
+
+                # Check distance to any point
+                threshold = 10 / self.app_state.zoom
+                for px, py in shape.points:
+                    if math.hypot(wx - px, wy - py) < threshold:
+                        return shape
+
+                # Check distance to segments
+                for i in range(len(shape.points) - 1):
+                    p1 = shape.points[i]
+                    p2 = shape.points[i + 1]
+
+                    x1, y1 = p1
+                    x2, y2 = p2
+
+                    # Distance from point to segment logic (reused from Line)
+                    l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
+                    if l2 == 0:
+                        continue
+
+                    t = ((wx - x1) * (x2 - x1) + (wy - y1) * (y2 - y1)) / l2
+                    t = max(0, min(1, t))
+                    px_proj = x1 + t * (x2 - x1)
+                    py_proj = y1 + t * (y2 - y1)
+
+                    dist = math.sqrt((wx - px_proj) ** 2 + (wy - py_proj) ** 2)
+                    if dist < 5 / self.app_state.zoom:
+                        return shape
+
         return None
 
     def on_pan_start(self, e: ft.DragStartEvent):
         wx, wy = self.to_world(e.local_x, e.local_y)
+
+        if self.app_state.current_tool == ToolType.ERASER:
+            hit_shape = self.hit_test(wx, wy)
+            if hit_shape:
+                if isinstance(hit_shape, Path):
+                    # For Path, eraser drag interaction will be handled in on_pan_update.
+                    # But if we just click, we might want to delete the whole path?
+                    # "If the user selects the eraser and clicks on a shape it should be deleted."
+                    # This implies full deletion on click.
+                    # However, "If the user selects the eraser and drags over a path, delete the points that were touched."
+                    # This implies partial deletion on drag.
+                    # We can't know if it's a click or drag yet.
+                    # But usually, instant action on pan_start feels responsive for "click".
+                    # Let's defer full deletion to `on_pan_end` if no drag occurred?
+                    # Or simpler:
+                    # If we start on a shape that IS NOT a path, delete it immediately.
+                    # If we start on a Path, we might be starting a drag erasure.
+                    # Let's assume for non-Path shapes, we delete immediately.
+                    if not isinstance(hit_shape, Path):
+                        self.app_state.remove_shape(hit_shape)
+                        return
+                    else:
+                        # It is a path. We start "erasing" points.
+                        # We need to track that we are erasing this path.
+                        self.current_drawing_shape = (
+                            hit_shape  # Reusing this to track active shape
+                        )
+                        self._erase_points_in_path(hit_shape, wx, wy)
+                else:
+                    self.app_state.remove_shape(hit_shape)
+            return
 
         if self.app_state.current_tool == ToolType.HAND:
             self.start_pan_x = e.local_x
@@ -545,6 +609,19 @@ class BlackboardCanvas(cv.Canvas):
         self.last_wx = wx
         self.last_wy = wy
 
+        # Eraser dragging logic
+        if self.app_state.current_tool == ToolType.ERASER:
+            # Check if we hit any path while dragging
+            # Note: The prompt says "drags over a path". This implies continuous hit testing.
+            # But earlier we optimized by setting `current_drawing_shape` if we started on a path.
+            # However, we might start on empty space and drag INTO a path.
+            # So let's hit test continuously.
+
+            hit_shape = self.hit_test(wx, wy)
+            if hit_shape and isinstance(hit_shape, Path):
+                self._erase_points_in_path(hit_shape, wx, wy)
+            return
+
         # Special handling for HAND (pan) tool since it relies on screen coordinates delta
         if self.app_state.current_tool == ToolType.HAND:
             dx = e.local_x - self.start_pan_x
@@ -558,6 +635,80 @@ class BlackboardCanvas(cv.Canvas):
         # But to be clean, let's delegate.
 
         self.update_active_interaction(wx, wy)
+
+    def _erase_points_in_path(self, path: Path, wx: float, wy: float):
+        # Eraser radius in world coordinates
+        eraser_radius = 10 / self.app_state.zoom
+
+        # Find points to remove
+        # We need to preserve the order and split if necessary.
+        # "If the points in a path are in the middle, turn the path into two separate path items."
+
+        new_points_list = []
+        current_segment = []
+
+        points_removed = False
+
+        for px, py in path.points:
+            if math.hypot(px - wx, py - wy) < eraser_radius:
+                # Point is erased.
+                points_removed = True
+                if current_segment:
+                    new_points_list.append(current_segment)
+                    current_segment = []
+            else:
+                current_segment.append((px, py))
+
+        if current_segment:
+            new_points_list.append(current_segment)
+
+        if not points_removed:
+            return
+
+        # If we removed all points, delete the shape
+        if not new_points_list:
+            self.app_state.remove_shape(path)
+            return
+
+        # If we have 1 segment, just update the path
+        if len(new_points_list) == 1:
+            path.points = new_points_list[0]
+            # If a path has too few points (e.g. 0 or 1), maybe delete it?
+            # Pen usually needs 2 points to be visible unless it's a dot.
+            if len(path.points) < 1:
+                self.app_state.remove_shape(path)
+            else:
+                self.app_state.update_shape(path)
+        else:
+            # We have multiple segments.
+            # Update the original path to be the first segment
+            # Create new paths for the rest
+
+            # First segment
+            first_seg = new_points_list[0]
+            path.points = first_seg
+            if len(path.points) < 1:
+                # If first segment is empty (shouldn't happen with logic above) or too small
+                # Actually logic above ensures non-empty segments are added.
+                pass
+            self.app_state.update_shape(path)
+
+            # Create new paths for subsequent segments
+            for segment in new_points_list[1:]:
+                if len(segment) >= 1:
+                    new_path = Path(
+                        points=segment,
+                        stroke_color=path.stroke_color,
+                        stroke_width=path.stroke_width,
+                        filled=path.filled,
+                        fill_color=path.fill_color,
+                    )
+                    self.app_state.add_shape(new_path)
+
+            # Ensure the state is saved/notified after all changes
+            # add_shape calls notify(save=True) internally, so we are good for new shapes.
+            # but update_shape calls notify(save=True) too.
+            # This is fine.
 
     def update_active_interaction(self, wx, wy):
         if getattr(self, "_is_updating_interaction", False):

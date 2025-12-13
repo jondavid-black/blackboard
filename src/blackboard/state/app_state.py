@@ -48,6 +48,13 @@ class AppState:
         self.shapes.append(shape)
         self.notify(save=True)
 
+    def remove_shape(self, shape: Shape):
+        if shape in self.shapes:
+            self.shapes.remove(shape)
+            if self.selected_shape_id == shape.id:
+                self.selected_shape_id = None
+            self.notify(save=True)
+
     def update_shape(self, shape: Shape):
         # In a real app, we might need to find and replace,
         # but if we are modifying the object directly, we just need to notify.

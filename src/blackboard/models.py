@@ -12,6 +12,7 @@ class ToolType(Enum):
     CIRCLE = "circle"
     TEXT = "text"
     PEN = "pen"
+    ERASER = "eraser"
 
 
 @dataclass
