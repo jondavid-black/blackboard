@@ -8,10 +8,31 @@ from ..models import ToolType, Shape, Line, Rectangle, Circle, Text, Path
 class BlackboardCanvas(cv.Canvas):
     def __init__(self, app_state: AppState):
         self.app_state = app_state
+        # The gesture container MUST be transparent to allow seeing the background underneath.
+        # But for gestures to work, it must have content or a color.
+        # ft.Colors.TRANSPARENT captures hits in Flet if it has content, or if it is a container with size.
+        # However, earlier I found that having a color (even transparent) might block things below?
+        # No, transparent is fine for visibility.
+        # The issue is that I set the gesture_container bgcolor to opaque in _on_state_change,
+        # which sits ON TOP of the Background component (z-index wise in the stack).
+        # Since gesture_container is inside the Canvas (or rather, is the content of the detector),
+        # making it opaque hides the Background component at the bottom of the stack,
+        # AND it hides the drawing which is done by the Canvas itself?
+        # Wait, flet.canvas.Canvas draws its shapes. Where does it draw them?
+        # Flet Canvas renders shapes on itself.
+        # The 'content' of a Canvas is rendered ON TOP of the shapes?
+        # According to Flet docs: "The content Control is positioned above the shapes."
+        # AHA!
+        # The gesture_container is the 'content' of the Canvas (via GestureDetector).
+        # So if gesture_container has an opaque background, it covers all the shapes drawn on the Canvas!
+
+        self.gesture_container = ft.Container(
+            expand=True, bgcolor=ft.Colors.TRANSPARENT
+        )
         super().__init__(
             shapes=[],
             content=ft.GestureDetector(
-                content=ft.Container(expand=True, bgcolor=ft.Colors.TRANSPARENT),
+                content=self.gesture_container,
                 on_pan_start=self.on_pan_start,
                 on_pan_update=self.on_pan_update,
                 on_pan_end=self.on_pan_end,
@@ -21,6 +42,7 @@ class BlackboardCanvas(cv.Canvas):
             ),
             expand=True,
         )
+
         self.current_drawing_shape: Shape | None = None
         self.start_pan_x = 0
         self.start_pan_y = 0
@@ -51,12 +73,57 @@ class BlackboardCanvas(cv.Canvas):
         return sx, sy
 
     def _on_state_change(self):
+        # Update canvas background based on theme
+        if self.app_state.theme_mode == "dark":
+            self.gesture_container.bgcolor = ft.Colors.TRANSPARENT
+        else:
+            self.gesture_container.bgcolor = ft.Colors.TRANSPARENT
+
         # Rebuild canvas shapes based on state
+
         canvas_shapes = []
 
+        # Determine stroke color based on theme
+
+        default_stroke_color = (
+            ft.Colors.WHITE if self.app_state.theme_mode == "dark" else ft.Colors.BLACK
+        )
+
         for shape in self.app_state.shapes:
+            # Use shape color if set, otherwise default based on theme
+            stroke_color = (
+                shape.stroke_color if shape.stroke_color else default_stroke_color
+            )
+
+            # If the shape color was explicitly "black" or "white" (maybe from previous saves),
+            # we might want to adapt it if it matches the background.
+            # But for now, let's assume shape.stroke_color is what the user wants
+            # unless it's the default "black" from models. Let's look at models.py.
+
+            # Actually, let's just override it if it's the "default" for the opposite theme.
+            # Simpler: if shape.stroke_color is None or empty, use default.
+            # If shape.stroke_color was saved as Black on a White canvas, and we switch to Dark,
+            # it will be invisible.
+
+            # Let's enforce the theme contrast for now if the color matches the background?
+            # Or better, let's rely on the fact that we should update the shape's color
+            # when adding it, or just interpret it dynamically here.
+
+            # Dynamic interpretation:
+            final_color = stroke_color
+            if self.app_state.theme_mode == "dark" and stroke_color == ft.Colors.BLACK:
+                final_color = ft.Colors.WHITE
+            elif (
+                self.app_state.theme_mode == "light" and stroke_color == ft.Colors.WHITE
+            ):
+                final_color = ft.Colors.BLACK
+
+            # If the color is still empty (from empty string default), set it to the theme default
+            if not final_color:
+                final_color = default_stroke_color
+
             paint = ft.Paint(
-                color=shape.stroke_color,
+                color=final_color,
                 stroke_width=shape.stroke_width,
                 style=ft.PaintingStyle.STROKE,
             )
@@ -90,10 +157,11 @@ class BlackboardCanvas(cv.Canvas):
                         shape.content,
                         style=ft.TextStyle(
                             size=shape.font_size * self.app_state.zoom,
-                            color=shape.stroke_color,
+                            color=final_color,
                         ),
                     )
                 )
+
             elif isinstance(shape, Path):
                 if not shape.points:
                     continue
@@ -193,24 +261,57 @@ class BlackboardCanvas(cv.Canvas):
                 self.initial_pan_y = self.app_state.pan_y
 
         elif self.app_state.current_tool == ToolType.LINE:
-            self.current_drawing_shape = Line(x=wx, y=wy, end_x=wx, end_y=wy)
+            color = (
+                ft.Colors.WHITE
+                if self.app_state.theme_mode == "dark"
+                else ft.Colors.BLACK
+            )
+            self.current_drawing_shape = Line(
+                x=wx, y=wy, end_x=wx, end_y=wy, stroke_color=color
+            )
             self.app_state.add_shape(self.current_drawing_shape)
 
         elif self.app_state.current_tool == ToolType.RECTANGLE:
-            self.current_drawing_shape = Rectangle(x=wx, y=wy, width=0, height=0)
+            color = (
+                ft.Colors.WHITE
+                if self.app_state.theme_mode == "dark"
+                else ft.Colors.BLACK
+            )
+            self.current_drawing_shape = Rectangle(
+                x=wx, y=wy, width=0, height=0, stroke_color=color
+            )
             self.app_state.add_shape(self.current_drawing_shape)
 
         elif self.app_state.current_tool == ToolType.CIRCLE:
-            self.current_drawing_shape = Circle(x=wx, y=wy, radius=0)
+            color = (
+                ft.Colors.WHITE
+                if self.app_state.theme_mode == "dark"
+                else ft.Colors.BLACK
+            )
+            self.current_drawing_shape = Circle(
+                x=wx, y=wy, radius=0, stroke_color=color
+            )
             self.app_state.add_shape(self.current_drawing_shape)
 
         elif self.app_state.current_tool == ToolType.PEN:
-            self.current_drawing_shape = Path(points=[(wx, wy)])
+            color = (
+                ft.Colors.WHITE
+                if self.app_state.theme_mode == "dark"
+                else ft.Colors.BLACK
+            )
+            self.current_drawing_shape = Path(points=[(wx, wy)], stroke_color=color)
             self.app_state.add_shape(self.current_drawing_shape)
 
         elif self.app_state.current_tool == ToolType.TEXT:
             # For prototype, just add text. In real app, show input.
-            self.app_state.add_shape(Text(x=wx, y=wy, content="Hello World"))
+            color = (
+                ft.Colors.WHITE
+                if self.app_state.theme_mode == "dark"
+                else ft.Colors.BLACK
+            )
+            self.app_state.add_shape(
+                Text(x=wx, y=wy, content="Hello World", stroke_color=color)
+            )
             self.app_state.set_tool(
                 ToolType.SELECTION
             )  # Switch back to selection after placing text

@@ -16,11 +16,14 @@ def start_blackboard_app(context):
     cmd = ["uv", "run", "flet", "run", "--web", "--port", str(port), "src/main.py"]
 
     # Start the process
+    kwargs = {}
+    if os.name == "posix":
+        kwargs["preexec_fn"] = os.setsid
+    elif os.name == "nt":
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+
     context.app_process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        preexec_fn=os.setsid,  # Allow killing the process group
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
     )
 
     # Wait a bit for the server to start
@@ -29,7 +32,12 @@ def start_blackboard_app(context):
     yield context.app_process
 
     # Teardown
-    os.killpg(os.getpgid(context.app_process.pid), 15)  # SIGTERM
+    if os.name == "posix":
+        os.killpg(os.getpgid(context.app_process.pid), 15)  # SIGTERM
+    else:
+        # On Windows, kill the process tree
+        subprocess.call(["taskkill", "/F", "/T", "/PID", str(context.app_process.pid)])
+
     context.app_process.wait()
 
 

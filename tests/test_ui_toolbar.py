@@ -91,12 +91,16 @@ def test_toolbar_updates_ui_on_state_change():
     hand_btn = toolbar.content.controls[0]
     pen_btn = toolbar.content.controls[2]
 
+    is_dark = app_state.theme_mode == "dark"
+    unselected_color = ft.Colors.WHITE if is_dark else ft.Colors.BLACK
+
     if hasattr(hand_btn, "icon_color"):
-        assert getattr(hand_btn, "icon_color") == ft.Colors.BLACK
+        assert getattr(hand_btn, "icon_color") == unselected_color
         assert getattr(pen_btn, "icon_color") == ft.Colors.BLUE
     elif hasattr(hand_btn, "color"):
-        assert getattr(hand_btn, "color") == ft.Colors.BLACK
+        assert getattr(hand_btn, "color") == unselected_color
         assert getattr(pen_btn, "color") == ft.Colors.BLUE
+
     else:
         raise AttributeError(
             f"Button does not have 'icon_color' or 'color' attribute, got attributes: {dir(hand_btn)}"

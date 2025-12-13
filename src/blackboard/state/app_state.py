@@ -13,6 +13,9 @@ class AppState:
         self.pan_y: float = 0.0
         self.zoom: float = 1.0
 
+        # Theme
+        self.theme_mode: str = "dark"  # 'dark' or 'light'
+
         self._listeners: List[Callable[[], None]] = []
 
     def add_listener(self, listener: Callable[[], None]):
@@ -53,4 +56,8 @@ class AppState:
 
     def set_zoom(self, zoom: float):
         self.zoom = zoom
+        self.notify()
+
+    def set_theme_mode(self, mode: str):
+        self.theme_mode = mode
         self.notify()

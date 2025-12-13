@@ -25,8 +25,25 @@ class Toolbar(ft.Container):
         self.app_state.remove_listener(self._on_state_change)
 
     def _on_state_change(self):
+        self._update_colors()
         self._render_content()
         self.update()
+
+    def _update_colors(self):
+        if self.app_state.theme_mode == "dark":
+            self.bgcolor = ft.Colors.SURFACE_CONTAINER_HIGHEST
+            self.shadow = ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=5,
+                color=ft.Colors.BLACK,
+            )
+        else:
+            self.bgcolor = ft.Colors.SURFACE_CONTAINER_HIGHEST
+            self.shadow = ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=5,
+                color=ft.Colors.BLUE_GREY_300,
+            )
 
     def _zoom(self, factor: float):
         new_zoom = self.app_state.zoom * factor
@@ -66,10 +83,16 @@ class Toolbar(ft.Container):
 
     def _build_tool_button(self, tool_type: ToolType, icon: str):
         is_selected = self.app_state.current_tool == tool_type
+
+        # Determine colors based on theme
+        is_dark = self.app_state.theme_mode == "dark"
+        icon_color_default = ft.Colors.WHITE if is_dark else ft.Colors.BLACK
+        bg_color_selected = ft.Colors.BLUE_900 if is_dark else ft.Colors.BLUE_50
+
         return ft.IconButton(
             icon=icon,
-            icon_color=ft.Colors.BLUE if is_selected else ft.Colors.BLACK,
-            bgcolor=ft.Colors.BLUE_50 if is_selected else None,
+            icon_color=ft.Colors.BLUE if is_selected else icon_color_default,
+            bgcolor=bg_color_selected if is_selected else None,
             on_click=lambda _: self.app_state.set_tool(tool_type),
             tooltip=tool_type.value.capitalize(),
             mouse_cursor=ft.MouseCursor.CLICK,
