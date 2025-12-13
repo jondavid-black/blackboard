@@ -16,6 +16,9 @@ class AppState:
         # Theme
         self.theme_mode: str = "dark"  # 'dark' or 'light'
 
+        # Side Rail & Drawer
+        self.active_drawer_tab: Optional[str] = None  # None means closed
+
         self._listeners: List[Callable[[], None]] = []
 
     def add_listener(self, listener: Callable[[], None]):
@@ -60,4 +63,19 @@ class AppState:
 
     def set_theme_mode(self, mode: str):
         self.theme_mode = mode
+        self.notify()
+
+    def set_active_drawer_tab(self, tab_index: Optional[str]):
+        """
+        Set the active tab in the side rail.
+        If the same tab is clicked, toggle it closed (set to None).
+        """
+        if self.active_drawer_tab == tab_index:
+            self.active_drawer_tab = None
+        else:
+            self.active_drawer_tab = tab_index
+        self.notify()
+
+    def close_drawer(self):
+        self.active_drawer_tab = None
         self.notify()
