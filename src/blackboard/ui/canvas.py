@@ -15,6 +15,7 @@ class BlackboardCanvas(cv.Canvas):
                 on_pan_start=self.on_pan_start,
                 on_pan_update=self.on_pan_update,
                 on_pan_end=self.on_pan_end,
+                on_scroll=self.on_scroll,
                 drag_interval=10,
                 mouse_cursor=ft.MouseCursor.BASIC,
             ),
@@ -271,3 +272,21 @@ class BlackboardCanvas(cv.Canvas):
 
     def on_pan_end(self, e: ft.DragEndEvent):
         self.current_drawing_shape = None
+
+    def on_scroll(self, e: ft.ScrollEvent):
+        if e.scroll_delta_y is None:
+            return
+
+        zoom_factor = 1.1 if e.scroll_delta_y < 0 else 0.9
+        old_zoom = self.app_state.zoom
+        new_zoom = max(0.1, min(10.0, old_zoom * zoom_factor))
+
+        wx, wy = self.to_world(e.local_x, e.local_y)
+        self.app_state.set_zoom(new_zoom)
+
+        new_sx = (wx * new_zoom) + self.app_state.pan_x
+        new_sy = (wy * new_zoom) + self.app_state.pan_y
+        self.app_state.set_pan(
+            self.app_state.pan_x + (e.local_x - new_sx),
+            self.app_state.pan_y + (e.local_y - new_sy),
+        )

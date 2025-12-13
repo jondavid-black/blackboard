@@ -10,8 +10,8 @@ def test_toolbar_initialization():
 
     assert isinstance(toolbar, ft.Container)
     assert isinstance(toolbar.content, ft.Row)
-    # Hand, Selection, Pen, Line, Rect, Circle, Text = 7 buttons
-    assert len(toolbar.content.controls) == 7
+    # Hand, Selection, Pen, Line, Rect, Circle, Text = 7 buttons + divider + zoom out + zoom text + zoom in = 11 controls
+    assert len(toolbar.content.controls) == 11
 
 
 def test_toolbar_button_click():

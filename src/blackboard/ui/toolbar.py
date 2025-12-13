@@ -28,18 +28,38 @@ class Toolbar(ft.Container):
         self._render_content()
         self.update()
 
+    def _zoom(self, factor: float):
+        new_zoom = self.app_state.zoom * factor
+        self.app_state.set_zoom(max(0.1, min(10.0, new_zoom)))
+
     def _render_content(self):
         self.content = ft.Row(
             controls=[
                 self._build_tool_button(ToolType.HAND, ft.Icons.PAN_TOOL),
                 self._build_tool_button(ToolType.SELECTION, ft.Icons.SELECT_ALL),
                 self._build_tool_button(ToolType.PEN, ft.Icons.EDIT),
-                self._build_tool_button(
-                    ToolType.LINE, ft.Icons.SHOW_CHART
-                ),  # Closest to line
+                self._build_tool_button(ToolType.LINE, ft.Icons.SHOW_CHART),
                 self._build_tool_button(ToolType.RECTANGLE, ft.Icons.CROP_SQUARE),
                 self._build_tool_button(ToolType.CIRCLE, ft.Icons.CIRCLE_OUTLINED),
                 self._build_tool_button(ToolType.TEXT, ft.Icons.TEXT_FIELDS),
+                ft.VerticalDivider(),
+                ft.IconButton(
+                    icon=ft.Icons.ZOOM_OUT,
+                    on_click=lambda _: self._zoom(0.8),
+                    tooltip="Zoom Out",
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                ),
+                ft.Text(
+                    f"{int(self.app_state.zoom * 100)}%",
+                    size=14,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.ZOOM_IN,
+                    on_click=lambda _: self._zoom(1.25),
+                    tooltip="Zoom In",
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
         )
