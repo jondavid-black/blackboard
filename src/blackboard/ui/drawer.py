@@ -5,6 +5,13 @@ from ..state.app_state import AppState
 class Drawer(ft.Container):
     def __init__(self, app_state: AppState):
         self.app_state = app_state
+        self.new_file_input = ft.TextField(
+            hint_text="New file...",
+            height=40,
+            content_padding=10,
+            text_size=14,
+            expand=True,
+        )
         super().__init__(
             width=300,
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
@@ -34,26 +41,91 @@ class Drawer(ft.Container):
     def _update_visibility(self):
         self.visible = self.app_state.active_drawer_tab is not None
 
+    def _on_create_file_click(self, e):
+        name = self.new_file_input.value
+        if name:
+            try:
+                self.app_state.create_file(name)
+                self.new_file_input.value = ""
+                self.new_file_input.error_text = None
+                self.update()
+            except Exception as ex:
+                self.new_file_input.error_text = str(ex)
+                self.update()
+
+    def _get_files_content(self):
+        files = self.app_state.list_files()
+        current_file = self.app_state.get_current_filename()
+
+        file_list_controls = []
+        for f in files:
+            is_selected = f == current_file
+
+            # Using a local variable for capturing the filename in lambda
+            def make_delete_handler(fname):
+                return lambda _: self.app_state.delete_file(fname)
+
+            def make_switch_handler(fname):
+                return lambda _: self.app_state.switch_file(fname)
+
+            file_list_controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            ft.Icon(
+                                ft.Icons.INSERT_DRIVE_FILE,
+                                color=ft.Colors.PRIMARY
+                                if is_selected
+                                else ft.Colors.ON_SURFACE_VARIANT,
+                            ),
+                            ft.Text(
+                                f,
+                                color=ft.Colors.PRIMARY
+                                if is_selected
+                                else ft.Colors.ON_SURFACE,
+                                weight=ft.FontWeight.BOLD
+                                if is_selected
+                                else ft.FontWeight.NORMAL,
+                                expand=True,
+                            ),
+                            ft.IconButton(
+                                icon=ft.Icons.DELETE,
+                                icon_color=ft.Colors.ERROR,
+                                tooltip="Delete",
+                                on_click=make_delete_handler(f),
+                            ),
+                        ],
+                    ),
+                    on_click=make_switch_handler(f),
+                    padding=5,
+                    border_radius=5,
+                    bgcolor=ft.Colors.BLUE_GREY_700 if is_selected else None,
+                    ink=True,
+                )
+            )
+
+        return [
+            ft.Text("Files", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Row(
+                controls=[
+                    self.new_file_input,
+                    ft.IconButton(ft.Icons.ADD, on_click=self._on_create_file_click),
+                ]
+            ),
+            ft.Divider(),
+            ft.Column(
+                controls=file_list_controls,
+                scroll=ft.ScrollMode.AUTO,
+                expand=True,
+            ),
+        ]
+
     def _render_content(self):
         tab = self.app_state.active_drawer_tab
 
+        # Default content map for simple tabs
         content_map = {
-            "files": [
-                ft.Text("Files", size=20, weight=ft.FontWeight.BOLD),
-                ft.Divider(),
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.INSERT_DRIVE_FILE),
-                    title=ft.Text("Drawing 1.board"),
-                ),
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.INSERT_DRIVE_FILE),
-                    title=ft.Text("Project A.board"),
-                ),
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.INSERT_DRIVE_FILE),
-                    title=ft.Text("Notes.board"),
-                ),
-            ],
             "tools": [
                 ft.Text("Tool Settings", size=20, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
@@ -85,7 +157,10 @@ class Drawer(ft.Container):
             ],
         }
 
-        current_content = content_map.get(tab, [])
+        if tab == "files":
+            current_content = self._get_files_content()
+        else:
+            current_content = content_map.get(tab, [])
 
         self.content = ft.Column(
             controls=[
@@ -99,5 +174,5 @@ class Drawer(ft.Container):
                     alignment=ft.MainAxisAlignment.END,
                 ),
                 *current_content,
-            ]
+            ],
         )

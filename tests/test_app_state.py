@@ -1,5 +1,6 @@
 from blackboard.state.app_state import AppState
 from blackboard.models import ToolType, Line
+from conftest import MockStorageService
 
 
 class MockListener:
@@ -11,7 +12,8 @@ class MockListener:
 
 
 def test_initial_state():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     assert state.shapes == []
     assert state.selected_shape_id is None
     assert state.current_tool == ToolType.HAND
@@ -21,7 +23,8 @@ def test_initial_state():
 
 
 def test_set_tool():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     listener = MockListener()
     state.add_listener(listener)
 
@@ -31,7 +34,8 @@ def test_set_tool():
 
 
 def test_add_shape():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     listener = MockListener()
     state.add_listener(listener)
 
@@ -44,7 +48,8 @@ def test_add_shape():
 
 
 def test_select_shape():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     listener = MockListener()
     state.add_listener(listener)
 
@@ -61,7 +66,8 @@ def test_select_shape():
 
 
 def test_tool_change_clears_selection():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     line = Line()
     state.add_shape(line)
     state.select_shape(line.id)
@@ -83,14 +89,16 @@ def test_tool_change_clears_selection():
 
 
 def test_set_pan():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     state.set_pan(100.0, 200.0)
     assert state.pan_x == 100.0
     assert state.pan_y == 200.0
 
 
 def test_listener_management():
-    state = AppState()
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
     listener = MockListener()
 
     state.add_listener(listener)
@@ -100,3 +108,48 @@ def test_listener_management():
     state.remove_listener(listener)
     state.notify()
     assert listener.call_count == 1
+
+
+def test_file_management():
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
+    listener = MockListener()
+    state.add_listener(listener)
+
+    # Initial state
+    assert state.get_current_filename() == "default.json"
+
+    # Create new file
+    state.create_file("test.json")
+    assert state.get_current_filename() == "test.json"
+    assert "test.json" in state.list_files()
+    assert listener.call_count >= 1
+
+    # Switch back
+    state.switch_file("default.json")
+    assert state.get_current_filename() == "default.json"
+
+    # Delete file
+    state.delete_file("test.json")
+    assert "test.json" not in state.list_files()
+
+    # Deleting current file should switch to default/remaining
+    # First re-create it to test this case
+    state.create_file("todelete.json")
+    assert state.get_current_filename() == "todelete.json"
+    state.delete_file("todelete.json")
+    # Should revert to default or another available file
+    assert state.get_current_filename() == "default.json"
+
+
+def test_create_file_without_extension():
+    """Test that creating a file without .json extension works and switches correctly"""
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
+
+    # Create file without extension
+    state.create_file("project_alpha")
+
+    # Should automatically add extension
+    assert state.get_current_filename() == "project_alpha.json"
+    assert "project_alpha.json" in state.list_files()

@@ -1,7 +1,8 @@
+import flet as ft
 from blackboard.ui.canvas import BlackboardCanvas
 from blackboard.state.app_state import AppState
 from blackboard.models import Line
-import flet as ft
+from conftest import MockStorageService
 
 
 def test_canvas_shapes_are_visible():
@@ -9,7 +10,8 @@ def test_canvas_shapes_are_visible():
     Ensure that shapes added to the canvas are actually added to the shapes list
     of the base cv.Canvas class, which is what Flet uses to render.
     """
-    app_state = AppState()
+    storage = MockStorageService()
+    app_state = AppState(storage_service=storage)
     canvas = BlackboardCanvas(app_state)
 
     # Mock update to avoid Flet error
@@ -24,6 +26,9 @@ def test_canvas_shapes_are_visible():
 
     # Verify the base class 'shapes' list is populated
     assert len(canvas.shapes) == 1
+    # Verify it is the line we added (and not leftovers from default.json)
+    assert canvas.shapes[0].x2 == 100
+    assert canvas.shapes[0].y2 == 100
 
     # Verify the Flet canvas object type
     rendered_shape = canvas.shapes[0]

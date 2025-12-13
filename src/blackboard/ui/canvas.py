@@ -58,6 +58,7 @@ class BlackboardCanvas(cv.Canvas):
 
     def did_mount(self):
         self.app_state.add_listener(self._on_state_change)
+        self._on_state_change()  # Initial render from loaded state
 
     def will_unmount(self):
         self.app_state.remove_listener(self._on_state_change)

@@ -1,17 +1,19 @@
 from typing import List, Callable, Optional
 from ..models import Shape, ToolType
+from ..storage.storage_service import StorageService
 
 
 class AppState:
-    def __init__(self):
-        self.shapes: List[Shape] = []
+    def __init__(self, storage_service: Optional[StorageService] = None):
+        self.storage = storage_service or StorageService()
+        self.shapes, view_data = self.storage.load_data()
         self.selected_shape_id: Optional[str] = None
         self.current_tool: ToolType = ToolType.HAND
 
         # Canvas transformation
-        self.pan_x: float = 0.0
-        self.pan_y: float = 0.0
-        self.zoom: float = 1.0
+        self.pan_x: float = view_data.get("pan_x", 0.0)
+        self.pan_y: float = view_data.get("pan_y", 0.0)
+        self.zoom: float = view_data.get("zoom", 1.0)
 
         # Theme
         self.theme_mode: str = "dark"  # 'dark' or 'light'
@@ -28,9 +30,11 @@ class AppState:
         if listener in self._listeners:
             self._listeners.remove(listener)
 
-    def notify(self):
+    def notify(self, save: bool = False):
         for listener in self._listeners:
             listener()
+        if save:
+            self.storage.save_data(self.shapes, self.pan_x, self.pan_y, self.zoom)
 
     def set_tool(self, tool: ToolType):
         self.current_tool = tool
@@ -41,12 +45,12 @@ class AppState:
 
     def add_shape(self, shape: Shape):
         self.shapes.append(shape)
-        self.notify()
+        self.notify(save=True)
 
     def update_shape(self, shape: Shape):
         # In a real app, we might need to find and replace,
         # but if we are modifying the object directly, we just need to notify.
-        self.notify()
+        self.notify(save=True)
 
     def select_shape(self, shape_id: Optional[str]):
         self.selected_shape_id = shape_id
@@ -55,11 +59,11 @@ class AppState:
     def set_pan(self, x: float, y: float):
         self.pan_x = x
         self.pan_y = y
-        self.notify()
+        self.notify(save=True)
 
     def set_zoom(self, zoom: float):
         self.zoom = zoom
-        self.notify()
+        self.notify(save=True)
 
     def set_theme_mode(self, mode: str):
         self.theme_mode = mode
@@ -78,4 +82,53 @@ class AppState:
 
     def close_drawer(self):
         self.active_drawer_tab = None
+        self.notify()
+
+    # File Management
+    def list_files(self) -> List[str]:
+        return self.storage.list_files()
+
+    def get_current_filename(self) -> str:
+        return self.storage.get_current_filename()
+
+    def create_file(self, filename: str):
+        if not filename.endswith(".json"):
+            filename += ".json"
+        # Save current state before switching
+        self.storage.save_data(
+            self.shapes, self.pan_x, self.pan_y, self.zoom, immediate=True
+        )
+        self.storage.create_file(filename)
+        self.switch_file(filename)
+
+    def switch_file(self, filename: str):
+        # Save current state before switching
+        # We check if we are already on this file to avoid redundant saves/reloads,
+        # but switch_file logic usually implies a change.
+        if self.get_current_filename() != filename:
+            self.storage.save_data(
+                self.shapes, self.pan_x, self.pan_y, self.zoom, immediate=True
+            )
+
+        self.storage.switch_file(filename)
+        self._reload_from_storage()
+
+    def delete_file(self, filename: str):
+        current_before = self.get_current_filename()
+        self.storage.delete_file(filename)
+        current_after = self.get_current_filename()
+
+        # If the underlying storage switched files (because we deleted the current one), reload.
+        if current_before != current_after or filename == current_before:
+            self._reload_from_storage()
+        else:
+            # Just notify so the file list updates
+            self.notify()
+
+    def _reload_from_storage(self):
+        self.shapes, view_data = self.storage.load_data()
+        self.pan_x = view_data.get("pan_x", 0.0)
+        self.pan_y = view_data.get("pan_y", 0.0)
+        self.zoom = view_data.get("zoom", 1.0)
+        self.selected_shape_id = None
         self.notify()

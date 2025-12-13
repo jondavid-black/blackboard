@@ -3,10 +3,12 @@ from unittest.mock import MagicMock
 from blackboard.ui.canvas import BlackboardCanvas
 from blackboard.state.app_state import AppState
 from blackboard.models import ToolType, Line
+from conftest import MockStorageService
 
 
 def test_canvas_drawing_colors_dark_mode():
-    app_state = AppState()
+    storage = MockStorageService()
+    app_state = AppState(storage_service=storage)
     app_state.theme_mode = "dark"
     app_state.set_tool(ToolType.LINE)
     canvas = BlackboardCanvas(app_state)
@@ -37,7 +39,8 @@ def test_canvas_drawing_colors_dark_mode():
 
 
 def test_canvas_drawing_colors_light_mode():
-    app_state = AppState()
+    storage = MockStorageService()
+    app_state = AppState(storage_service=storage)
     app_state.theme_mode = "light"
     app_state.set_tool(ToolType.LINE)
     canvas = BlackboardCanvas(app_state)
@@ -61,7 +64,8 @@ def test_canvas_drawing_colors_light_mode():
 
 
 def test_canvas_renders_empty_color_correctly():
-    app_state = AppState()
+    storage = MockStorageService()
+    app_state = AppState(storage_service=storage)
     app_state.theme_mode = "dark"
     canvas = BlackboardCanvas(app_state)
     canvas.update = lambda: None
