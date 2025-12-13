@@ -17,6 +17,7 @@ class AppState:
 
         # Theme
         self.theme_mode: str = "dark"  # 'dark' or 'light'
+        self.is_shift_down: bool = False
 
         # Side Rail & Drawer
         self.active_drawer_tab: Optional[str] = None  # None means closed
@@ -68,6 +69,14 @@ class AppState:
     def set_theme_mode(self, mode: str):
         self.theme_mode = mode
         self.notify()
+
+    def set_shift_key(self, is_down: bool):
+        if self.is_shift_down != is_down:
+            self.is_shift_down = is_down
+            # We don't necessarily need to notify/render on key press alone
+            # unless it changes cursor or active drawing preview immediately.
+            # But let's notify just in case UI needs to update.
+            self.notify()
 
     def set_active_drawer_tab(self, tab_index: Optional[str]):
         """

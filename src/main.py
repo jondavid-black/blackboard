@@ -16,6 +16,14 @@ def main(page: ft.Page):
 
     app_state = AppState()
 
+    def on_keyboard_event(e: ft.KeyboardEvent):
+        if e.shift:
+            app_state.set_shift_key(True)
+        else:
+            app_state.set_shift_key(False)
+
+    page.on_keyboard_event = on_keyboard_event
+
     toolbar = Toolbar(app_state)
     canvas = BlackboardCanvas(app_state)
     theme_switcher = ThemeSwitcher(app_state)

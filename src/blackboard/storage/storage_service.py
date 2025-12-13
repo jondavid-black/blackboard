@@ -206,6 +206,13 @@ class StorageService:
         elif shape_type == "rectangle":
             return Rectangle(**data)
         elif shape_type == "circle":
+            # Migration for old circle data that had 'radius'
+            if "radius" in data:
+                r = data.pop("radius")
+                if "radius_x" not in data:
+                    data["radius_x"] = r
+                if "radius_y" not in data:
+                    data["radius_y"] = r
             return Circle(**data)
         elif shape_type == "text":
             return Text(**data)

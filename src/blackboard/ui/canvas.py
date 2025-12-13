@@ -55,6 +55,14 @@ class BlackboardCanvas(cv.Canvas):
         self.moving_shape_initial_y = 0
         self.moving_shape_initial_end_x = 0  # For Line
         self.moving_shape_initial_end_y = 0  # For Line
+        self.resize_handle = None
+        self.resizing_shape = None
+
+        # Track last world coordinates for refreshing logic when modifier keys change
+        self.last_wx = 0
+        self.last_wy = 0
+
+        self._is_updating_interaction = False
 
     def did_mount(self):
         self.app_state.add_listener(self._on_state_change)
@@ -74,6 +82,12 @@ class BlackboardCanvas(cv.Canvas):
         return sx, sy
 
     def _on_state_change(self):
+        # Update logic if we are in the middle of an interaction and state changed (e.g. shift key)
+        if (self.current_drawing_shape or self.resizing_shape) and hasattr(
+            self, "last_wx"
+        ):
+            self.update_active_interaction(self.last_wx, self.last_wy)
+
         # Update canvas background based on theme
         if self.app_state.theme_mode == "dark":
             self.gesture_container.bgcolor = ft.Colors.TRANSPARENT
@@ -137,15 +151,138 @@ class BlackboardCanvas(cv.Canvas):
                 sx1, sy1 = self.to_screen(shape.x, shape.y)
                 sx2, sy2 = self.to_screen(shape.end_x, shape.end_y)
                 canvas_shapes.append(cv.Line(sx1, sy1, sx2, sy2, paint=paint))
+
+                # Draw handles if selected
+                if self.app_state.selected_shape_id == shape.id:
+                    handle_paint = ft.Paint(
+                        color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
+                    )
+                    handle_size = 8
+                    hs = handle_size / 2
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx1 - hs,
+                            sy1 - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx2 - hs,
+                            sy2 - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )
+
             elif isinstance(shape, Rectangle):
                 sx, sy = self.to_screen(shape.x, shape.y)
                 w = shape.width * self.app_state.zoom
                 h = shape.height * self.app_state.zoom
                 canvas_shapes.append(cv.Rect(sx, sy, w, h, paint=paint))
+
+                # Draw handles if selected
+                if self.app_state.selected_shape_id == shape.id:
+                    handle_paint = ft.Paint(
+                        color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
+                    )
+                    handle_size = 8
+                    hs = handle_size / 2
+
+                    # 4 Corners
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx - hs,
+                            sy - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # TL
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx + w - hs,
+                            sy - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # TR
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx - hs,
+                            sy + h - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # BL
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx + w - hs,
+                            sy + h - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # BR
+
             elif isinstance(shape, Circle):
+                # ... existing oval render ...
                 sx, sy = self.to_screen(shape.x, shape.y)
-                r = shape.radius * self.app_state.zoom
-                canvas_shapes.append(cv.Circle(sx, sy, r, paint=paint))
+                w = shape.radius_x * 2 * self.app_state.zoom
+                h = shape.radius_y * 2 * self.app_state.zoom
+                canvas_shapes.append(cv.Oval(sx, sy, w, h, paint=paint))
+
+                # Draw handles if selected
+                if self.app_state.selected_shape_id == shape.id:
+                    handle_paint = ft.Paint(
+                        color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
+                    )
+                    handle_size = 8
+                    hs = handle_size / 2
+
+                    # 4 Corners of bounding box
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx - hs,
+                            sy - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # TL
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx + w - hs,
+                            sy - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # TR
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx - hs,
+                            sy + h - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # BL
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx + w - hs,
+                            sy + h - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # BR
+
             # Text not fully implemented in canvas.Canvas yet in some versions,
             # but let's assume it is or skip for now.
             # Actually ft.canvas.Text exists.
@@ -183,6 +320,56 @@ class BlackboardCanvas(cv.Canvas):
         self.shapes = canvas_shapes
         self.update()
 
+    def get_resize_handle(self, shape, wx, wy):
+        threshold = 10 / self.app_state.zoom
+
+        if isinstance(shape, Line):
+            if math.hypot(wx - shape.x, wy - shape.y) < threshold:
+                return "start"
+            if math.hypot(wx - shape.end_x, wy - shape.end_y) < threshold:
+                return "end"
+
+        elif isinstance(shape, Rectangle):
+            # Normalization for negative width/height handled by absolute coords?
+            # No, shape.x/y is anchor. width/height can be negative.
+            # Let's get actual corners.
+            x1 = shape.x
+            y1 = shape.y
+            x2 = shape.x + shape.width
+            y2 = shape.y + shape.height
+
+            # We need to test all 4 corners
+            if math.hypot(wx - x1, wy - y1) < threshold:
+                return "tl"  # Top-Left (relative to anchor, might strictly be just "start-corner")
+            if math.hypot(wx - x2, wy - y1) < threshold:
+                return "tr"
+            if math.hypot(wx - x1, wy - y2) < threshold:
+                return "bl"
+            if math.hypot(wx - x2, wy - y2) < threshold:
+                return "br"
+
+        # Circle resizing logic can be similar to Rectangle (bounding box)
+        elif isinstance(shape, Circle):
+            # shape.x, shape.y are top-left of bounding box
+            # dimensions: 2*rx, 2*ry
+            w = shape.radius_x * 2
+            h = shape.radius_y * 2
+            x1 = shape.x
+            y1 = shape.y
+            x2 = x1 + w
+            y2 = y1 + h
+
+            if math.hypot(wx - x1, wy - y1) < threshold:
+                return "tl"
+            if math.hypot(wx - x2, wy - y1) < threshold:
+                return "tr"
+            if math.hypot(wx - x1, wy - y2) < threshold:
+                return "bl"
+            if math.hypot(wx - x2, wy - y2) < threshold:
+                return "br"
+
+        return None
+
     def hit_test(self, wx, wy):
         # Simple hit test
         for shape in reversed(self.app_state.shapes):
@@ -193,10 +380,28 @@ class BlackboardCanvas(cv.Canvas):
                 ):
                     return shape
             elif isinstance(shape, Circle):
-                dx = wx - shape.x
-                dy = wy - shape.y
-                if math.sqrt(dx * dx + dy * dy) <= shape.radius:
+                # Hit test for Ellipse/Oval
+                # (x - h)^2 / a^2 + (y - k)^2 / b^2 <= 1
+                # (h, k) is center.
+                # shape.x, shape.y are Top-Left.
+                # a = radius_x, b = radius_y
+                rx = shape.radius_x
+                ry = shape.radius_y
+
+                # Avoid division by zero
+                if rx == 0 or ry == 0:
+                    continue
+
+                cx = shape.x + rx
+                cy = shape.y + ry
+
+                dx = wx - cx
+                dy = wy - cy
+
+                # Check if point is inside
+                if (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1:
                     return shape
+
             elif isinstance(shape, Line):
                 # Distance from point to line segment
                 # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
@@ -242,6 +447,23 @@ class BlackboardCanvas(cv.Canvas):
             self.initial_pan_y = self.app_state.pan_y
 
         elif self.app_state.current_tool == ToolType.SELECTION:
+            # Check for resize handles on selected shape first
+            if self.app_state.selected_shape_id:
+                selected_shape = next(
+                    (
+                        s
+                        for s in self.app_state.shapes
+                        if s.id == self.app_state.selected_shape_id
+                    ),
+                    None,
+                )
+                if selected_shape:
+                    handle = self.get_resize_handle(selected_shape, wx, wy)
+                    if handle:
+                        self.resize_handle = handle
+                        self.resizing_shape = selected_shape
+                        return
+
             hit_shape = self.hit_test(wx, wy)
             if hit_shape:
                 self.app_state.select_shape(hit_shape.id)
@@ -289,8 +511,9 @@ class BlackboardCanvas(cv.Canvas):
                 if self.app_state.theme_mode == "dark"
                 else ft.Colors.BLACK
             )
+            # Initial click is the top-left corner (or anchor point)
             self.current_drawing_shape = Circle(
-                x=wx, y=wy, radius=0, stroke_color=color
+                x=wx, y=wy, radius_x=0, radius_y=0, stroke_color=color
             )
             self.app_state.add_shape(self.current_drawing_shape)
 
@@ -319,13 +542,97 @@ class BlackboardCanvas(cv.Canvas):
 
     def on_pan_update(self, e: ft.DragUpdateEvent):
         wx, wy = self.to_world(e.local_x, e.local_y)
+        self.last_wx = wx
+        self.last_wy = wy
 
+        # Special handling for HAND (pan) tool since it relies on screen coordinates delta
         if self.app_state.current_tool == ToolType.HAND:
             dx = e.local_x - self.start_pan_x
             dy = e.local_y - self.start_pan_y
             self.app_state.set_pan(self.initial_pan_x + dx, self.initial_pan_y + dy)
+            return
 
-        elif self.app_state.current_tool == ToolType.SELECTION:
+        # Special handling for Selection Move (Pan) since it relies on screen/world deltas
+        # Ideally we refactor this too, but for now let's keep it here or handle in update_active_interaction
+        # Logic for selection move doesn't depend on shift key (yet), so it's less critical.
+        # But to be clean, let's delegate.
+
+        self.update_active_interaction(wx, wy)
+
+    def update_active_interaction(self, wx, wy):
+        if getattr(self, "_is_updating_interaction", False):
+            return
+        self._is_updating_interaction = True
+        try:
+            self._update_active_interaction_internal(wx, wy)
+        finally:
+            self._is_updating_interaction = False
+
+    def _update_active_interaction_internal(self, wx, wy):
+        if self.app_state.current_tool == ToolType.SELECTION:
+            if self.resizing_shape:
+                # Handle resizing
+                shape = self.resizing_shape
+
+                if isinstance(shape, Line):
+                    if self.resize_handle == "start":
+                        shape.x = wx
+                        shape.y = wy
+                    elif self.resize_handle == "end":
+                        shape.end_x = wx
+                        shape.end_y = wy
+
+                elif isinstance(shape, Rectangle):
+                    # For Rectangle, dragging a handle means updating one corner
+                    # while keeping the opposite corner fixed.
+
+                    # Current absolute corners
+                    x1 = shape.x
+                    y1 = shape.y
+                    x2 = shape.x + shape.width
+                    y2 = shape.y + shape.height
+
+                    # Update the corner corresponding to the handle
+                    if self.resize_handle == "tl":
+                        x1, y1 = wx, wy
+                    elif self.resize_handle == "tr":
+                        x2, y1 = wx, wy
+                    elif self.resize_handle == "bl":
+                        x1, y2 = wx, wy
+                    elif self.resize_handle == "br":
+                        x2, y2 = wx, wy
+
+                    shape.x = x1
+                    shape.y = y1
+                    shape.width = x2 - x1
+                    shape.height = y2 - y1
+
+                elif isinstance(shape, Circle):
+                    # Similar to rectangle
+                    w = shape.radius_x * 2
+                    h = shape.radius_y * 2
+                    x1 = shape.x
+                    y1 = shape.y
+                    x2 = x1 + w
+                    y2 = y1 + h
+
+                    if self.resize_handle == "tl":
+                        x1, y1 = wx, wy
+                    elif self.resize_handle == "tr":
+                        x2, y1 = wx, wy
+                    elif self.resize_handle == "bl":
+                        x1, y2 = wx, wy
+                    elif self.resize_handle == "br":
+                        x2, y2 = wx, wy
+
+                    shape.x = x1
+                    shape.y = y1
+                    shape.radius_x = (x2 - x1) / 2
+                    shape.radius_y = (y2 - y1) / 2
+
+                self.app_state.notify()
+                return
+
             if self.app_state.selected_shape_id:
                 # Move object
                 dx = wx - self.drag_start_wx
@@ -348,24 +655,80 @@ class BlackboardCanvas(cv.Canvas):
                         shape.end_y = self.moving_shape_initial_end_y + dy
                     self.app_state.notify()
             else:
-                # Pan
-                dx = e.local_x - self.start_pan_x
-                dy = e.local_y - self.start_pan_y
-                self.app_state.set_pan(self.initial_pan_x + dx, self.initial_pan_y + dy)
+                # Pan logic handled in on_pan_update for now or here?
+                # e.local_x is not available here.
+                # So we leave Selection Pan (background drag) in on_pan_update if possible,
+                # but wait, on_pan_update called this.
+                # If we are in Selection mode and NO shape is selected, we are panning.
+                # But panning needs `e.local_x`.
+                # Let's handle panning in `on_pan_update` explicitly before calling this.
+                pass
 
         elif self.current_drawing_shape:
             if isinstance(self.current_drawing_shape, Line):
-                self.current_drawing_shape.end_x = wx
-                self.current_drawing_shape.end_y = wy
-
-            elif isinstance(self.current_drawing_shape, Rectangle):
-                self.current_drawing_shape.width = wx - self.current_drawing_shape.x
-                self.current_drawing_shape.height = wy - self.current_drawing_shape.y
-
-            elif isinstance(self.current_drawing_shape, Circle):
                 dx = wx - self.current_drawing_shape.x
                 dy = wy - self.current_drawing_shape.y
-                self.current_drawing_shape.radius = math.sqrt(dx * dx + dy * dy)
+
+                if self.app_state.is_shift_down:
+                    # Snap to 45 degree increments
+                    angle = math.atan2(dy, dx)
+                    snap_angle = round(angle / (math.pi / 4)) * (math.pi / 4)
+                    length = math.sqrt(dx * dx + dy * dy)
+
+                    self.current_drawing_shape.end_x = (
+                        self.current_drawing_shape.x + length * math.cos(snap_angle)
+                    )
+                    self.current_drawing_shape.end_y = (
+                        self.current_drawing_shape.y + length * math.sin(snap_angle)
+                    )
+                else:
+                    self.current_drawing_shape.end_x = wx
+                    self.current_drawing_shape.end_y = wy
+
+            elif isinstance(self.current_drawing_shape, Rectangle):
+                current_w = wx - self.current_drawing_shape.x
+                current_h = wy - self.current_drawing_shape.y
+
+                if self.app_state.is_shift_down:
+                    # Force square, using the larger dimension
+                    max_dim = max(abs(current_w), abs(current_h))
+                    # Preserve direction
+                    current_w = max_dim if current_w >= 0 else -max_dim
+                    current_h = max_dim if current_h >= 0 else -max_dim
+
+                self.current_drawing_shape.width = current_w
+                self.current_drawing_shape.height = current_h
+
+            elif isinstance(self.current_drawing_shape, Circle):
+                # User drags to define the opposite corner of the bounding box.
+                # Start point: self.start_pan_x, self.start_pan_y (Screen coords)
+                # But here we are in on_pan_update, and we have wx, wy (current World coords).
+                # We need the START point in World coords.
+                # Unlike PAN tool, we didn't save start_wx/start_wy specifically for drawing tools in `on_pan_start`.
+                # But for `Circle`, `x` and `y` were initialized to `wx`, `wy` at start.
+
+                # So current_drawing_shape.x / y is the anchor point (start).
+                start_x = self.current_drawing_shape.x
+                start_y = self.current_drawing_shape.y
+
+                # Update shape to represent the NEW top-left and size
+                rx = (wx - start_x) / 2
+                ry = (wy - start_y) / 2
+
+                # Constrain to perfect circle if shift is held
+                if self.app_state.is_shift_down:
+                    # Use the larger dimension? Or just sync them?
+                    # Typical UX: max of abs(rx), abs(ry), preserving sign if possible?
+                    # Usually drag direction determines sign.
+                    # Let's take the max dimension.
+                    max_r = max(abs(rx), abs(ry))
+
+                    # Preserve sign of drag
+                    rx = max_r if rx >= 0 else -max_r
+                    ry = max_r if ry >= 0 else -max_r
+
+                self.current_drawing_shape.radius_x = rx
+                self.current_drawing_shape.radius_y = ry
 
             elif isinstance(self.current_drawing_shape, Path):
                 self.current_drawing_shape.points.append((wx, wy))
@@ -374,6 +737,11 @@ class BlackboardCanvas(cv.Canvas):
 
     def on_pan_end(self, e: ft.DragEndEvent):
         self.current_drawing_shape = None
+        self.resize_handle = None
+        self.resizing_shape = None
+
+        # Reset shift key state on drag end to prevent stuck keys
+        self.app_state.set_shift_key(False)
 
     def on_scroll(self, e: ft.ScrollEvent):
         if e.scroll_delta_y is None:

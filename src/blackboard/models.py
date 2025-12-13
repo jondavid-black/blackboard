@@ -43,7 +43,21 @@ class Rectangle(Shape):
 @dataclass
 class Circle(Shape):
     type: str = "circle"
-    radius: float = 0.0
+    radius_x: float = 0.0
+    radius_y: float = 0.0
+
+    @property
+    def radius(self) -> float:
+        """Compat for code expecting a single radius (returns average or max?)
+        Let's return max for bounding box logic usually.
+        Actually, old code expects .radius to exist.
+        """
+        return max(abs(self.radius_x), abs(self.radius_y))
+
+    @radius.setter
+    def radius(self, value: float):
+        self.radius_x = value
+        self.radius_y = value
 
 
 @dataclass
