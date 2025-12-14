@@ -323,7 +323,7 @@ class PropertiesDrawer(BaseDrawer):
             ]
         )
 
-        if first_shape.type != "text":
+        if first_shape.type not in ["text", "line", "path"]:
             controls.extend(
                 [
                     ft.Container(height=10),
@@ -340,8 +340,8 @@ class PropertiesDrawer(BaseDrawer):
                 ]
             )
 
-        # Hide Fill for Text
-        if first_shape.type != "text":
+        # Hide Fill for Text, Line, and Path
+        if first_shape.type not in ["text", "line", "path"]:
             controls.extend(
                 [
                     ft.Container(height=10),
