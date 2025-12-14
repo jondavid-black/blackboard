@@ -27,7 +27,12 @@
       "filled": false,
       "fill_color": "transparent",
       "end_x": 1134.0,
-      "end_y": 176.0
+      "end_y": 176.0,
+      "line_type": "simple",
+      "start_shape_id": null,
+      "end_shape_id": null,
+      "start_anchor_id": null,
+      "end_anchor_id": null
     },
     {
       "id": "eaa4dc0d-762e-4f32-a759-9346ff7b802a",

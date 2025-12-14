@@ -86,32 +86,162 @@ class AppState:
 
         self.notify(save=save)
 
-    def _update_connected_lines(self, moved_shape: Shape, dx: float, dy: float):
+    def _update_connected_lines(
+        self,
+        moved_shape: Shape,
+        dx: float,
+        dy: float,
+        moved_anchor_ids: Optional[set[str]] = None,
+        caller_id: Optional[str] = None,
+    ):
         """
         Finds all lines connected to moved_shape and updates their endpoints.
-        """
-        # print(f"DEBUG: _update_connected_lines for {moved_shape.id} delta=({dx},{dy}). Shapes: {[s.id for s in self.shapes]}")
 
+        Args:
+            moved_shape: The shape that moved.
+            dx: The amount moved in x.
+            dy: The amount moved in y.
+            moved_anchor_ids: A set of anchor IDs on moved_shape that actually moved.
+                              If None, assumes the entire shape moved (all anchors).
+            caller_id: The ID of the shape that triggered this update (to prevent cycles).
+        """
+        # print(f"DEBUG: _update_connected_lines for {moved_shape.id} delta=({dx},{dy}). Anchors: {moved_anchor_ids}")
+
+        # 1. Update lines that are "children" of moved_shape (attached TO moved_shape)
         for s in self.shapes:
             if isinstance(s, Line):
                 if s.id in self.selected_shape_ids:
                     continue
 
+                # Prevent recursion if this child is the one who called us
+                if caller_id and s.id == caller_id:
+                    continue
+
                 # Check connection to start
                 if s.start_shape_id == moved_shape.id:
-                    # print(f"DEBUG: Line {s.id} start connected to {moved_shape.id}. Moving start.")
-                    s.x += dx
-                    s.y += dy
-                    # Recursive update
-                    self._update_connected_lines(s, dx, dy)
+                    # Only update if the specific anchor moved, or if the whole shape moved
+                    should_move = (
+                        moved_anchor_ids is None
+                        or s.start_anchor_id in moved_anchor_ids
+                        or s.start_anchor_id
+                        is None  # Handle generic connections as 'move with shape'
+                    )
+
+                    if should_move:
+                        # print(f"DEBUG: Line {s.id} start connected to {moved_shape.id} anchor {s.start_anchor_id}. Moving start.")
+                        s.x += dx
+                        s.y += dy
+                        # Recursive update: Line s only moved its start anchor ("start")
+                        # Pass moved_shape.id as caller_id so s knows who moved it
+                        self._update_connected_lines(
+                            s,
+                            dx,
+                            dy,
+                            moved_anchor_ids={"start"},
+                            caller_id=moved_shape.id,
+                        )
 
                 # Check connection to end
                 if s.end_shape_id == moved_shape.id:
-                    # print(f"DEBUG: Line {s.id} end connected to {moved_shape.id}. Moving end.")
-                    s.end_x += dx
-                    s.end_y += dy
-                    # Recursive update
-                    self._update_connected_lines(s, dx, dy)
+                    should_move = (
+                        moved_anchor_ids is None
+                        or s.end_anchor_id in moved_anchor_ids
+                        or s.end_anchor_id is None
+                    )
+
+                    if should_move:
+                        # print(f"DEBUG: Line {s.id} end connected to {moved_shape.id} anchor {s.end_anchor_id}. Moving end.")
+                        s.end_x += dx
+                        s.end_y += dy
+                        # Recursive update: Line s only moved its end anchor ("end")
+                        self._update_connected_lines(
+                            s,
+                            dx,
+                            dy,
+                            moved_anchor_ids={"end"},
+                            caller_id=moved_shape.id,
+                        )
+
+        # 2. Update lines that moved_shape is attached TO (Parent lines)
+        if isinstance(moved_shape, Line):
+            # Check Start Connection
+            # Only update parent if:
+            # a) We moved (so we pull parent)
+            # b) We were NOT moved BY the parent (caller_id != parent.id)
+
+            if moved_shape.start_shape_id and (
+                moved_anchor_ids is None or "start" in moved_anchor_ids
+            ):
+                # Avoid cycle: If parent moved us, don't move parent back
+                if not caller_id or caller_id != moved_shape.start_shape_id:
+                    # If parent is also selected, it is moving on its own. Don't pull it.
+                    if moved_shape.start_shape_id in self.selected_shape_ids:
+                        pass
+                    else:
+                        parent = next(
+                            (
+                                s
+                                for s in self.shapes
+                                if s.id == moved_shape.start_shape_id
+                            ),
+                            None,
+                        )
+                        if parent and isinstance(parent, Line):
+                            self._update_parent_anchor(
+                                parent,
+                                moved_shape.start_anchor_id,
+                                dx,
+                                dy,
+                                child_id=moved_shape.id,
+                            )
+
+            # Check End Connection
+            if moved_shape.end_shape_id and (
+                moved_anchor_ids is None or "end" in moved_anchor_ids
+            ):
+                if not caller_id or caller_id != moved_shape.end_shape_id:
+                    # If parent is also selected, it is moving on its own. Don't pull it.
+                    if moved_shape.end_shape_id in self.selected_shape_ids:
+                        pass
+                    else:
+                        parent = next(
+                            (
+                                s
+                                for s in self.shapes
+                                if s.id == moved_shape.end_shape_id
+                            ),
+                            None,
+                        )
+                        if parent and isinstance(parent, Line):
+                            self._update_parent_anchor(
+                                parent,
+                                moved_shape.end_anchor_id,
+                                dx,
+                                dy,
+                                child_id=moved_shape.id,
+                            )
+
+    def _update_parent_anchor(
+        self, parent: Line, anchor_id: str, dx: float, dy: float, child_id: str
+    ):
+        """
+        Updates a specific anchor on a parent line because a child attached to it moved.
+        """
+        if anchor_id == "start":
+            parent.x += dx
+            parent.y += dy
+            # Recursively update things attached to parent's start
+            # Pass child_id as caller_id so parent doesn't update child back
+            self._update_connected_lines(
+                parent, dx, dy, moved_anchor_ids={"start"}, caller_id=child_id
+            )
+
+        elif anchor_id == "end":
+            parent.end_x += dx
+            parent.end_y += dy
+            self._update_connected_lines(
+                parent, dx, dy, moved_anchor_ids={"end"}, caller_id=child_id
+            )
 
     def update_shape(self, shape: Shape, save: bool = True):
         # Update connected lines if they are attached to anchors
