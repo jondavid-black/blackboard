@@ -130,7 +130,7 @@ class StorageService:
         # Return path relative to DATA_DIR
         return os.path.relpath(self.current_file, DATA_DIR)
 
-    def load_data(self) -> Tuple[List[Shape], Dict[str, float]]:
+    def load_data(self) -> Tuple[List[Shape], Dict[str, Any]]:
         if not os.path.exists(self.current_file):
             return [], {"pan_x": 0.0, "pan_y": 0.0, "zoom": 1.0}
 
@@ -163,6 +163,7 @@ class StorageService:
         pan_x: float,
         pan_y: float,
         zoom: float,
+        grid_type: str = "none",
         immediate: bool = False,
     ):
         with self._lock:
@@ -170,20 +171,30 @@ class StorageService:
                 self._save_timer.cancel()
 
             if immediate:
-                self._perform_save(shapes, pan_x, pan_y, zoom)
+                self._perform_save(shapes, pan_x, pan_y, zoom, grid_type)
             else:
                 # Debounce save: wait 1.5 seconds
                 self._save_timer = threading.Timer(
-                    1.5, self._perform_save, [shapes, pan_x, pan_y, zoom]
+                    1.5, self._perform_save, [shapes, pan_x, pan_y, zoom, grid_type]
                 )
                 self._save_timer.start()
 
     def _perform_save(
-        self, shapes: List[Shape], pan_x: float, pan_y: float, zoom: float
+        self,
+        shapes: List[Shape],
+        pan_x: float,
+        pan_y: float,
+        zoom: float,
+        grid_type: str,
     ):
         shapes_data = [self._serialize_shape(shape) for shape in shapes]
         full_data = {
-            "view": {"pan_x": pan_x, "pan_y": pan_y, "zoom": zoom},
+            "view": {
+                "pan_x": pan_x,
+                "pan_y": pan_y,
+                "zoom": zoom,
+                "grid_type": grid_type,
+            },
             "shapes": shapes_data,
         }
 

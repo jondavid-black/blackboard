@@ -58,10 +58,16 @@ class MockStorageService:
         pan_x: float,
         pan_y: float,
         zoom: float,
+        grid_type: str = "none",
         immediate: bool = False,
     ):
         self.saved_shapes = shapes
-        self.saved_view = {"pan_x": pan_x, "pan_y": pan_y, "zoom": zoom}
+        self.saved_view = {
+            "pan_x": pan_x,
+            "pan_y": pan_y,
+            "zoom": zoom,
+            "grid_type": grid_type,
+        }
 
     def list_files(self) -> List[str]:
         return self.files

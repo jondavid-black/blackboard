@@ -3,6 +3,7 @@ from blackboard.state.app_state import AppState
 from blackboard.ui.toolbar import Toolbar
 from blackboard.ui.canvas import BlackboardCanvas
 from blackboard.ui.theme_switcher import ThemeSwitcher
+from blackboard.ui.grid_settings import GridSettings
 from blackboard.ui.background import Background
 from blackboard.ui.side_rail import SideRail
 from blackboard.ui.drawer import Drawer
@@ -45,6 +46,7 @@ def main(page: ft.Page):
     toolbar = Toolbar(app_state)
     canvas = BlackboardCanvas(app_state)
     theme_switcher = ThemeSwitcher(app_state)
+    grid_settings = GridSettings(app_state)
     background = Background(app_state)
 
     side_rail = SideRail(app_state)
@@ -65,12 +67,13 @@ def main(page: ft.Page):
                     left=0,
                     right=0,
                 ),
-                # Theme switcher at top right
+                # Settings at top right (Grid + Theme)
                 ft.Row(
-                    controls=[theme_switcher],
+                    controls=[grid_settings, theme_switcher],
                     alignment=ft.MainAxisAlignment.END,
                     top=10,
                     right=10,
+                    spacing=10,
                 ),
                 # Side Rail at left (overlay)
                 side_rail,
