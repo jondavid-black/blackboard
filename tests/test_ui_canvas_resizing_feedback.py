@@ -33,8 +33,11 @@ def test_canvas_resize_feedback_with_shift():
     e_start.local_y = 200
     canvas.on_pan_start(e_start)
 
-    # Verify initial color is white
-    assert canvas.shapes[0].paint.color == ft.Colors.WHITE
+    # Verify initial color is BLUE (because selected)
+    # The default behavior in canvas.py:
+    # if self.app_state.selected_shape_id == shape.id:
+    #     paint.color = ft.Colors.BLUE
+    assert canvas.shapes[0].paint.color == ft.Colors.BLUE
 
     # 4. Press Shift
     app_state.set_shift_key(True)
@@ -52,5 +55,5 @@ def test_canvas_resize_feedback_with_shift():
     app_state.set_shift_key(False)
     canvas._on_state_change()
 
-    # 7. Verify color reverted
-    assert canvas.shapes[0].paint.color == ft.Colors.WHITE
+    # 7. Verify color reverted to BLUE (selected)
+    assert canvas.shapes[0].paint.color == ft.Colors.BLUE
