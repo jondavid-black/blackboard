@@ -53,6 +53,15 @@ class AppState:
         # Clipboard
         self.clipboard: List[dict] = []
 
+        # Drag State
+        self.dragging_shape_id: Optional[str] = None
+
+    def start_drag(self, shape_id: str):
+        self.dragging_shape_id = shape_id
+
+    def end_drag(self):
+        self.dragging_shape_id = None
+
     def add_listener(self, listener: Callable[[], None]):
         self._listeners.append(listener)
 
@@ -549,7 +558,8 @@ class AppState:
 
         # Remove old shapes
         for shape in shapes_to_group:
-            self.shapes.remove(shape)
+            if shape in self.shapes:
+                self.shapes.remove(shape)
 
         # 3. Create Group
         import uuid
@@ -567,8 +577,9 @@ class AppState:
         insert_idx = max(indices) - len(indices) + 1 if indices else len(self.shapes)
 
         # Remove old shapes
-        for shape in shapes_to_group:
-            self.shapes.remove(shape)
+        # NOTE: We already removed them above. This was a duplicate block causing ValueError.
+        # for shape in shapes_to_group:
+        #     self.shapes.remove(shape)
 
         self.shapes.insert(insert_idx, group)
 
@@ -662,6 +673,60 @@ class AppState:
                 self.shapes[idx],
             )
             self.notify(save=True)
+
+    def move_shape_to_front(self, shape_id: str):
+        idx = -1
+        for i, s in enumerate(self.shapes):
+            if s.id == shape_id:
+                idx = i
+                break
+
+        if idx != -1 and idx < len(self.shapes) - 1:
+            self.snapshot()
+            shape = self.shapes.pop(idx)
+            self.shapes.append(shape)
+            self.notify(save=True)
+
+    def move_shape_to_back(self, shape_id: str):
+        idx = -1
+        for i, s in enumerate(self.shapes):
+            if s.id == shape_id:
+                idx = i
+                break
+
+        if idx > 0:
+            self.snapshot()
+            shape = self.shapes.pop(idx)
+            self.shapes.insert(0, shape)
+            self.notify(save=True)
+
+    def reorder_shape(self, source_id: str, target_id: str):
+        """
+        Moves source shape to be at the position of target shape.
+        """
+        if source_id == target_id:
+            return
+
+        source_idx = -1
+        target_idx = -1
+        for i, s in enumerate(self.shapes):
+            if s.id == source_id:
+                source_idx = i
+            if s.id == target_id:
+                target_idx = i
+
+        if source_idx == -1 or target_idx == -1:
+            return
+
+        self.snapshot()
+        shape = self.shapes.pop(source_idx)
+        # If we popped from before target, target_idx has shifted down by 1
+        if source_idx < target_idx:
+            target_idx -= 1
+
+        # We insert at the target index + 1 (Visual Above / Higher Z-index)
+        self.shapes.insert(target_idx + 1, shape)
+        self.notify(save=True)
 
     def close_drawer(self):
         self.active_drawer_tab = None

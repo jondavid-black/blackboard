@@ -78,7 +78,7 @@ def main(page: ft.Page):
                 # We position it absolutely. It will animate visibility.
                 ft.Row(
                     controls=[drawer],
-                    alignment=ft.MainAxisAlignment.START,
+                    vertical_alignment=ft.CrossAxisAlignment.STRETCH,
                     left=80,  # Assuming rail width approx 80-100. Rail min_width=100 in definition
                     top=0,
                     bottom=0,

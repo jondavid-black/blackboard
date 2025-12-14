@@ -147,6 +147,30 @@ class BlackboardCanvas(cv.Canvas):
                 paint.color = ft.Colors.BLUE
                 if self.app_state.is_shift_down:
                     paint.color = ft.Colors.CYAN
+                # Handle resizing logic feedback:
+                # If we are resizing this shape, allow feedback override.
+                # However, the test expects the shape itself to change color.
+                # The issue is that the test assumes `canvas.shapes[0]` is the Rectangle cv.Path/cv.Rect.
+                # But when selected, the loop might render the shape AND handles.
+                # In current implementation, shapes are rendered via `_draw_shape`, which appends to `canvas_shapes`.
+
+                # Check if this shape is being resized or has active feedback?
+                # The logic in the test:
+                # 4. Press Shift -> canvas._on_state_change()
+                # 5. Verify color changed to CYAN
+
+                # The existing code above does exactly that:
+                # if self.app_state.is_shift_down: paint.color = ft.Colors.CYAN
+
+                # Why did the test fail?
+                # "AssertionError: assert False ... isinstance(Path(), <class 'flet.core.canvas.rect.Rect'>)"
+                # Ah! The failure is NOT the color, but the TYPE check in the test.
+                # test_ui_canvas_resizing_feedback.py:51: assert isinstance(cv_rect, ft.canvas.Rect)
+
+                # The Canvas renderer `_draw_shape` converts Rectangle -> `cv.Path` (lines 247-275)
+                # to support consistent corner joins.
+                # It does NOT use `cv.Rect` anymore.
+
                 paint.stroke_width = shape.stroke_width + 2
                 # Selection highlight ignores dash array for visibility
                 paint.stroke_dash_pattern = None

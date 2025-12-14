@@ -14,6 +14,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "width": 150.0,
       "height": 182.0
     },
@@ -26,6 +29,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "end_x": 1134.0,
       "end_y": 176.0,
       "line_type": "simple",
@@ -43,6 +49,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "radius_x": 76.21679604916491,
       "radius_y": 76.21679604916491
     },
@@ -55,6 +64,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "points": [
         [
           856.0,
@@ -499,6 +511,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "points": [
         [
           834.1014274981217,
@@ -655,6 +670,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "radius_x": 25.169045830202833,
       "radius_y": 24.417731029301265
     },
@@ -667,6 +685,9 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
       "radius_x": 34.936138241923345,
       "radius_y": 11.645379413974453
     }

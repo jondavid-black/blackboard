@@ -119,29 +119,49 @@ def test_drawer_files_tab_interaction():
     # Simulate clicking New File
     # This sets creating_type = 'file' and calls update()
     # We need to manually trigger the lambda
-    drawer._start_creation("file")
+    files_drawer = drawer.drawers["files"]
+    files_drawer._start_creation("file")
 
     # Re-fetch content because it re-renders
+    # drawer.content is the Column
+    # It delegates to files_drawer.build(), which returns controls
+    # The Column controls are: [CloseButton, Header, Divider, TreeColumn]
     column = drawer.content
     file_list_col = column.controls[3]
 
     # Now the first item in file_list_col should be the creation row
+    # because FilesDrawer.build() logic puts creation row at top if active
     creation_row_container = file_list_col.controls[0]
     creation_row = creation_row_container.content
     assert isinstance(creation_row, ft.Row)
 
-    input_field = creation_row.controls[1].content  # Container -> TextField
+    # In previous error: 'Icon' object has no attribute 'content'
+    # Let's check structure of creation row in FilesDrawer._get_files_content
+    # Row controls: [Icon(FOLDER/FILE), Container(TextField), IconButton(CLOSE)]
+    # So index 1 is the Container holding the TextField
+    input_container = creation_row.controls[1]
+    assert isinstance(input_container, ft.Container)
+    input_field = input_container.content  # This should be the TextField
     assert isinstance(input_field, ft.TextField)
 
     # Test Create File
     input_field.value = "new_project"
     # Manually trigger on_submit handler
-    drawer._on_creation_submit(None)
+    files_drawer._on_creation_submit(None)
 
     assert "new_project.json" in app_state.list_files()
     assert app_state.get_current_filename() == "new_project.json"
 
     # Re-fetch content
+    # Note: drawer._render_content() is called on update usually,
+    # but here we might need to manually invoke if we are not running full Flet loop
+    # or ensure our test drawer is updating.
+    # The files_drawer update calls self.on_update which calls drawer.update...
+    # But since we mocked drawer.update = lambda: None, we need to manually rebuild content
+    # or inspect what files_drawer WOULD return.
+
+    # Let's inspect files_drawer state/logic directly or manually rebuild drawer content
+    drawer._render_content()
     column = drawer.content
     file_list_col = column.controls[3]
 
@@ -286,16 +306,17 @@ def test_drawer_creation_in_selected_folder():
     # We need to manually simulate this behavior since we can't click the lambda directly easily
     # or rely on the bound method.
     # The simpler way is calling _toggle_path directly with the folder name
-    drawer._toggle_path("parent_folder/")
+    files_drawer = drawer.drawers["files"]
+    files_drawer._toggle_path("parent_folder/")
 
-    assert drawer.selected_folder_path == "parent_folder/"
+    assert files_drawer.selected_folder_path == "parent_folder/"
 
     # 2. Start creation of a file
-    drawer._start_creation("file")
+    files_drawer._start_creation("file")
 
     # 3. Submit name "child_file"
-    drawer.creation_input.value = "child_file"
-    drawer._on_creation_submit(None)
+    files_drawer.creation_input.value = "child_file"
+    files_drawer._on_creation_submit(None)
 
     # 4. Verify file was created INSIDE the folder
     assert "parent_folder/child_file.json" in app_state.list_files()
@@ -305,10 +326,10 @@ def test_drawer_creation_in_selected_folder():
 
     # 5. Verify creation creates in root if NO folder selected
     # Deselect folder (click file in root or just reset)
-    drawer.selected_folder_path = None
+    files_drawer.selected_folder_path = None
 
-    drawer._start_creation("file")
-    drawer.creation_input.value = "root_file"
-    drawer._on_creation_submit(None)
+    files_drawer._start_creation("file")
+    files_drawer.creation_input.value = "root_file"
+    files_drawer._on_creation_submit(None)
 
     assert "root_file.json" in app_state.list_files()
