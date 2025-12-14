@@ -1,7 +1,6 @@
 from blackboard.models import Line
 from blackboard.state.app_state import AppState
 from blackboard.storage.storage_service import StorageService
-from unittest.mock import MagicMock
 
 
 class MockStorageService(StorageService):

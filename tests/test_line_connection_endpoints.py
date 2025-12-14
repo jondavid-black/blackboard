@@ -1,6 +1,5 @@
-from blackboard.models import Line, Shape, Rectangle, Circle, Polygon, Text
+from blackboard.models import Line
 from blackboard.state.app_state import AppState
-from blackboard.ui.canvas import BlackboardCanvas
 from conftest import MockStorageService
 
 
@@ -106,10 +105,6 @@ def test_line_to_line_resize_connection():
     # 3. Verify Line B followed
     assert line_b.x == 300
     assert line_b.y == 150
-
-
-from blackboard.models import Line
-from blackboard.state.app_state import AppState
 
 
 def test_chained_line_connection_resize_recursive():

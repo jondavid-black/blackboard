@@ -1,5 +1,5 @@
 from blackboard.state.app_state import AppState
-from blackboard.models import Line, ToolType
+from blackboard.models import Line
 from conftest import MockStorageService
 
 

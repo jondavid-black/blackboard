@@ -1,21 +1,21 @@
 {
   "view": {
-    "pan_x": 60.799999999999955,
-    "pan_y": 281.6,
-    "zoom": 1.0
+    "pan_x": 624.0460690393284,
+    "pan_y": 473.04345466746,
+    "zoom": 1.1619306726826792
   },
   "shapes": [
     {
       "id": "c9a14795-9345-4a22-a0ae-28e1a1a41bc2",
       "type": "line",
-      "x": -160.0,
-      "y": -36.799999999999926,
+      "x": -295.72046189276034,
+      "y": 50.731368744490666,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": -150.39999999999998,
-      "end_y": 241.5999999999999,
+      "end_x": -224.52046189276038,
+      "end_y": 293.1313687444905,
       "line_type": "connector",
       "start_shape_id": null,
       "end_shape_id": null,
@@ -25,14 +25,14 @@
     {
       "id": "f6ce3f9d-6310-43bd-8872-4917b4dfb172",
       "type": "line",
-      "x": -150.39999999999992,
-      "y": 238.39999999999992,
+      "x": -224.52046189276032,
+      "y": 289.93136874449056,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": 511.9999999999993,
-      "end_y": 343.20000000000005,
+      "end_x": 376.2795381072391,
+      "end_y": 430.73136874449085,
       "line_type": "connector",
       "start_shape_id": "c9a14795-9345-4a22-a0ae-28e1a1a41bc2",
       "end_shape_id": null,
@@ -42,14 +42,14 @@
     {
       "id": "a781dc40-5988-4dc7-9266-772e79e107b7",
       "type": "line",
-      "x": 511.9999999999993,
-      "y": 343.20000000000005,
+      "x": 376.2795381072391,
+      "y": 430.73136874449085,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": -160.0,
-      "end_y": -36.799999999999926,
+      "end_x": -295.72046189276034,
+      "end_y": 50.731368744490666,
       "line_type": "connector",
       "start_shape_id": "f6ce3f9d-6310-43bd-8872-4917b4dfb172",
       "end_shape_id": "c9a14795-9345-4a22-a0ae-28e1a1a41bc2",
@@ -108,18 +108,6 @@
       "end_anchor_id": "start"
     },
     {
-      "id": "4776a2e4-cc28-45f4-9cee-f9cedb92afbf",
-      "type": "rectangle",
-      "x": 374.4,
-      "y": -66.39999999999998,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "width": 100.80000000000007,
-      "height": 78.39999999999998
-    },
-    {
       "id": "50b5db8e-b591-4058-8856-74b41707b27b",
       "type": "line",
       "x": 681.5999999999998,
@@ -152,6 +140,141 @@
       "end_shape_id": "12952c81-e620-439a-96d6-af9a90fdd3db",
       "start_anchor_id": "bottom_right",
       "end_anchor_id": "end"
+    },
+    {
+      "id": "a63182b3-4cc7-4dc7-9ef2-a9046bd1cb08",
+      "type": "rectangle",
+      "x": 293.22709094018694,
+      "y": -192.18166459925112,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 42.39999999999998,
+      "height": 124.0
+    },
+    {
+      "id": "498ba2ad-23e4-42c4-a3c5-dd96637a0cf9",
+      "type": "circle",
+      "x": -266.50397121029135,
+      "y": -122.0736990363819,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 95.19999999999999,
+      "radius_y": 36.0
+    },
+    {
+      "id": "23afd4b6-83b9-4be4-875d-18d19446edd6",
+      "type": "polygon",
+      "x": 59.531970229188985,
+      "y": 71.28913700438594,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "points": [
+        [
+          59.531970229188985,
+          -3.110862995614042
+        ],
+        [
+          109.13197022918898,
+          71.28913700438594
+        ],
+        [
+          59.531970229188985,
+          145.68913700438603
+        ],
+        [
+          9.931970229188927,
+          71.28913700438596
+        ]
+      ],
+      "polygon_type": "diamond"
+    },
+    {
+      "id": "3309728f-4127-4251-adac-0d132885830c",
+      "type": "polygon",
+      "x": 331.1332939273799,
+      "y": 169.16374612843975,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "points": [
+        [
+          331.1332939273799,
+          123.72213653731441
+        ],
+        [
+          367.1479096878633,
+          155.1215165130304
+        ],
+        [
+          353.3915505591263,
+          205.92678053941174
+        ],
+        [
+          308.8750372956335,
+          205.92678053941174
+        ],
+        [
+          295.1186781668965,
+          155.12151651303043
+        ]
+      ],
+      "polygon_type": "pentagon"
+    },
+    {
+      "id": "6b375a6c-9f55-435b-a075-08f04304b119",
+      "type": "polygon",
+      "x": 396.5416713691511,
+      "y": -180.5989458759798,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "points": [
+        [
+          396.5416713691511,
+          -228.10608317579272
+        ],
+        [
+          433.51019370666154,
+          -204.35251452588625
+        ],
+        [
+          433.51019370666154,
+          -156.84537722607337
+        ],
+        [
+          396.5416713691511,
+          -133.0918085761669
+        ],
+        [
+          359.57314903164075,
+          -156.84537722607334
+        ],
+        [
+          359.57314903164075,
+          -204.35251452588622
+        ]
+      ],
+      "polygon_type": "hexagon"
+    },
+    {
+      "id": "978148c1-fc2b-4472-9a8e-824da2dfc8b1",
+      "type": "text",
+      "x": 550.0792310482566,
+      "y": -184.0414920571257,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "content": "Good morning!",
+      "font_size": 16.0
     }
   ]
 }
