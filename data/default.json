@@ -20,8 +20,8 @@
     {
       "id": "bad70baf-9d50-4988-9be2-f88b169785c7",
       "type": "rectangle",
-      "x": 707.7547381235293,
-      "y": 145.99747174257914,
+      "x": 732.6191115749355,
+      "y": 137.22181052443577,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
@@ -80,8 +80,8 @@
     {
       "id": "06987658-2f83-4ed2-a4a3-c4d1d22351f6",
       "type": "circle",
-      "x": 527.0011060439355,
-      "y": 160.07358699395618,
+      "x": 554.0593947998774,
+      "y": 152.7605359788367,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
@@ -116,8 +116,8 @@
     {
       "id": "fc630a2d-4ff8-4265-aac6-ccdee786341c",
       "type": "circle",
-      "x": 649.2779864763336,
-      "y": 321.2314049586776,
+      "x": 676.3362752322755,
+      "y": 313.91835394355803,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
@@ -128,8 +128,8 @@
     {
       "id": "4ed142d4-3105-4644-b827-8310a136bb10",
       "type": "rectangle",
-      "x": 763.4778362133734,
-      "y": 287.42223891810664,
+      "x": 790.5361249693153,
+      "y": 280.10918790298706,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
@@ -580,8 +580,8 @@
     {
       "id": "dcb88563-e2e2-41cc-9f25-3ff32c32df52",
       "type": "path",
-      "x": 0.0,
-      "y": 0.0,
+      "x": 27.05828875594193,
+      "y": -7.313051015119505,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
@@ -1474,64 +1474,6 @@
       ]
     },
     {
-      "id": "78afa3f8-21a3-46d5-9570-9e8fcf74fdf7",
-      "type": "polygon",
-      "x": 551.4954152704491,
-      "y": -70.68440144593278,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "points": [
-        [
-          551.4954152704491,
-          -131.3463283451207
-        ],
-        [
-          592.6221453715933,
-          -70.68440144593278
-        ],
-        [
-          551.4954152704491,
-          -10.022474546744853
-        ],
-        [
-          510.36868516930485,
-          -70.68440144593276
-        ]
-      ],
-      "polygon_type": "diamond"
-    },
-    {
-      "id": "bf45520b-5217-476f-b3e3-ae0c14c19045",
-      "type": "polygon",
-      "x": 687.7021465046438,
-      "y": 14.436123612878038,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "points": [
-        [
-          687.7021465046438,
-          -11.26808270033727
-        ],
-        [
-          755.5612511715319,
-          14.436123612878038
-        ],
-        [
-          687.7021465046438,
-          40.140329926093195
-        ],
-        [
-          619.8430418377557,
-          14.436123612878038
-        ]
-      ],
-      "polygon_type": "diamond"
-    },
-    {
       "id": "0651ed64-93b7-4f4b-84c0-60f3f87912e0",
       "type": "path",
       "x": 0.0,
@@ -1642,36 +1584,19 @@
     {
       "id": "39537df0-18b8-4ecd-9088-d66f4e1ff65f",
       "type": "line",
-      "x": 784.0131904150394,
-      "y": 227.1394702399495,
+      "x": 808.8775638664456,
+      "y": 218.3638090218061,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": 779.483074486944,
-      "end_y": 287.13910374401956,
+      "end_x": 806.541363242886,
+      "end_y": 279.8260527289,
       "line_type": "connector",
       "start_shape_id": "bad70baf-9d50-4988-9be2-f88b169785c7",
       "end_shape_id": null,
       "start_anchor_id": "bottom_center",
       "end_anchor_id": null
-    },
-    {
-      "id": "4e83b3b8-28bc-4c0c-b25c-8fddd7ce4881",
-      "type": "line",
-      "x": 592.6221453715933,
-      "y": -70.68440144593278,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "end_x": 685.6458099995865,
-      "end_y": -9.211746195279954,
-      "line_type": "connector",
-      "start_shape_id": "78afa3f8-21a3-46d5-9570-9e8fcf74fdf7",
-      "end_shape_id": "bf45520b-5217-476f-b3e3-ae0c14c19045",
-      "start_anchor_id": "vertex_1",
-      "end_anchor_id": "vertex_0"
     },
     {
       "id": "f55f5353-c0c0-4a05-a61b-ad42a021adb0",
@@ -1835,33 +1760,16 @@
       "end_anchor_id": "left_center"
     },
     {
-      "id": "f7811d5e-a0d3-4b9e-926d-8ea2527f4aab",
-      "type": "line",
-      "x": 551.4954152704491,
-      "y": -10.022474546744853,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "end_x": 564.2622829200421,
-      "end_y": 160.27001853881188,
-      "line_type": "simple",
-      "start_shape_id": "78afa3f8-21a3-46d5-9570-9e8fcf74fdf7",
-      "end_shape_id": "06987658-2f83-4ed2-a4a3-c4d1d22351f6",
-      "start_anchor_id": "vertex_2",
-      "end_anchor_id": "top_center"
-    },
-    {
       "id": "1ff3e530-48c8-4930-afaf-65f0e340523a",
       "type": "line",
-      "x": 601.3812713331916,
-      "y": 190.1261790300193,
+      "x": 628.4395600891336,
+      "y": 182.8131280148998,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": 708.4759631041019,
-      "end_y": 188.4590948354127,
+      "end_x": 733.3403365555081,
+      "end_y": 179.68343361726932,
       "line_type": "arrow",
       "start_shape_id": "06987658-2f83-4ed2-a4a3-c4d1d22351f6",
       "end_shape_id": "bad70baf-9d50-4988-9be2-f88b169785c7",
@@ -1871,14 +1779,269 @@
     {
       "id": "9ddfc932-3257-49dc-bcdb-5c258d01d460",
       "type": "text",
-      "x": 303.1820163546664,
-      "y": -149.18927899887558,
+      "x": 314.88289797885744,
+      "y": -137.4883973746846,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
       "content": "Say something!",
       "font_size": 16.0
+    },
+    {
+      "id": "8cfce49b-5319-4f40-9480-cca9911c8639",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "e95584c0-05bc-4d0d-980c-8e40489f5da5",
+      "type": "circle",
+      "x": 67.70177366782275,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 45.70656884449606,
+      "radius_y": 45.70656884449606
+    },
+    {
+      "id": "12e9beb5-a151-4f44-89ac-f0f610b54cf7",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "10f3c2b4-e813-46f7-92fb-64722416fd77",
+      "type": "circle",
+      "x": 67.70177366782275,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 45.70656884449606,
+      "radius_y": 45.70656884449606
+    },
+    {
+      "id": "c789a539-e5de-4bc3-9458-f970c2f8c8e6",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "dc70a225-647d-4204-b610-353d4fedb106",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "624a833e-609f-4060-be79-ee46e94c2373",
+      "type": "circle",
+      "x": 67.70177366782275,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 45.70656884449606,
+      "radius_y": 45.70656884449606
+    },
+    {
+      "id": "d2d08a22-ac8c-4fab-bcbf-1440f87042e2",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "dd595fde-1a6f-4510-8d86-e467ef93b277",
+      "type": "circle",
+      "x": 67.70177366782275,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 45.70656884449606,
+      "radius_y": 45.70656884449606
+    },
+    {
+      "id": "fdf1c751-debb-42fa-ad4b-71bfbb87397c",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "f0bc6a4b-14e4-4c98-af2a-5d4b55b2b36e",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "36e3d5b7-cb8d-4196-ab80-8865deb98ab2",
+      "type": "circle",
+      "x": 67.70177366782275,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 45.70656884449606,
+      "radius_y": 45.70656884449606
+    },
+    {
+      "id": "1164ad3f-81a3-4fcb-a5e4-35691bbbe5fb",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "b20ac133-7107-4a20-ba0b-65c4428ee825",
+      "type": "circle",
+      "x": 67.70177366782275,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "radius_x": 45.70656884449606,
+      "radius_y": 45.70656884449606
+    },
+    {
+      "id": "5811578a-6585-44b4-996c-0e1727b58639",
+      "type": "rectangle",
+      "x": -115.12450171016148,
+      "y": -234.02067077426028,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "width": 91.41313768899211,
+      "height": 91.41313768899212
+    },
+    {
+      "id": "d4015137-346e-440f-90dd-7e42332977cb",
+      "type": "polygon",
+      "x": 562.7953273914037,
+      "y": -59.238751512907406,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "points": [
+        [
+          562.7953273914037,
+          -117.74315963386218
+        ],
+        [
+          600.8231926700245,
+          -59.238751512907406
+        ],
+        [
+          562.7953273914037,
+          -0.7343433919524802
+        ],
+        [
+          524.7674621127829,
+          -59.238751512907406
+        ]
+      ],
+      "polygon_type": "diamond"
+    },
+    {
+      "id": "5363ba20-d945-47da-b51c-714109f0f77f",
+      "type": "polygon",
+      "x": 798.2755700782475,
+      "y": -85.56573516733712,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "points": [
+        [
+          798.2755700782475,
+          -121.39968514142194
+        ],
+        [
+          869.9434700264171,
+          -85.56573516733712
+        ],
+        [
+          798.2755700782475,
+          -49.73178519325227
+        ],
+        [
+          726.6076701300778,
+          -85.56573516733712
+        ]
+      ],
+      "polygon_type": "diamond"
+    },
+    {
+      "id": "7b3cf0d9-73ee-4e64-80c0-806d670af3d6",
+      "type": "line",
+      "x": 726.6076701300778,
+      "y": -85.56573516733712,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "end_x": 597.1666671624646,
+      "end_y": -58.5074464113955,
+      "line_type": "connector",
+      "start_shape_id": "5363ba20-d945-47da-b51c-714109f0f77f",
+      "end_shape_id": "d4015137-346e-440f-90dd-7e42332977cb",
+      "start_anchor_id": "vertex_3",
+      "end_anchor_id": "vertex_1"
     }
   ]
 }

@@ -67,6 +67,10 @@ class BlackboardCanvas(cv.Canvas):
         self.hover_wx = 0
         self.hover_wy = 0
 
+        self.box_select_start_wx = None
+        self.box_select_start_wy = None
+        self.box_select_rect = None
+
         self._is_updating_interaction = False
 
     def did_mount(self):
@@ -249,7 +253,10 @@ class BlackboardCanvas(cv.Canvas):
                 style=ft.PaintingStyle.STROKE,
             )
 
-            if self.app_state.selected_shape_id == shape.id:
+            if (
+                self.app_state.selected_shape_id == shape.id
+                or shape.id in self.app_state.selected_shape_ids
+            ):
                 paint.color = ft.Colors.BLUE
                 if self.app_state.is_shift_down:
                     paint.color = ft.Colors.CYAN
@@ -303,11 +310,12 @@ class BlackboardCanvas(cv.Canvas):
                         canvas_shapes.append(cv.Line(sx2, sy2, ax1, ay1, paint=paint))
                         canvas_shapes.append(cv.Line(sx2, sy2, ax2, ay2, paint=paint))
 
-                # Draw handles if selected
+                # Draw handles if selected (only if single selection)
                 if self.app_state.selected_shape_id == shape.id:
                     handle_paint = ft.Paint(
                         color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
                     )
+
                     handle_size = 8
                     hs = handle_size / 2
                     canvas_shapes.append(
@@ -335,11 +343,12 @@ class BlackboardCanvas(cv.Canvas):
                 h = shape.height * self.app_state.zoom
                 canvas_shapes.append(cv.Rect(sx, sy, w, h, paint=paint))
 
-                # Draw handles if selected
+                # Draw handles if selected (only if single selection)
                 if self.app_state.selected_shape_id == shape.id:
                     handle_paint = ft.Paint(
                         color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
                     )
+
                     handle_size = 8
                     hs = handle_size / 2
 
@@ -389,10 +398,14 @@ class BlackboardCanvas(cv.Canvas):
                 canvas_shapes.append(cv.Oval(sx, sy, w, h, paint=paint))
 
                 # Draw handles if selected
-                if self.app_state.selected_shape_id == shape.id:
+                if (
+                    self.app_state.selected_shape_id == shape.id
+                    or shape.id in self.app_state.selected_shape_ids
+                ):
                     handle_paint = ft.Paint(
                         color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
                     )
+
                     handle_size = 8
                     hs = handle_size / 2
 
@@ -490,10 +503,14 @@ class BlackboardCanvas(cv.Canvas):
                 )
 
                 # Draw handles if selected (similar to Rectangle/Circle bounding box)
-                if self.app_state.selected_shape_id == shape.id:
+                if (
+                    self.app_state.selected_shape_id == shape.id
+                    or shape.id in self.app_state.selected_shape_ids
+                ):
                     handle_paint = ft.Paint(
                         color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
                     )
+
                     handle_size = 8
                     hs = handle_size / 2
 
@@ -544,6 +561,41 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # BR
+
+        if self.box_select_rect:
+            x, y, w, h = self.box_select_rect
+            # Convert world rect to screen
+            sx, sy = self.to_screen(x, y)
+            sw = w * self.app_state.zoom
+            sh = h * self.app_state.zoom
+
+            # Use negative width/height support of cv.Rect
+            canvas_shapes.append(
+                cv.Rect(
+                    sx,
+                    sy,
+                    sw,
+                    sh,
+                    paint=ft.Paint(
+                        style=ft.PaintingStyle.STROKE,
+                        color=ft.Colors.BLUE,
+                        stroke_width=1,
+                    ),
+                )
+            )
+            # Add semi-transparent fill
+            canvas_shapes.append(
+                cv.Rect(
+                    sx,
+                    sy,
+                    sw,
+                    sh,
+                    paint=ft.Paint(
+                        style=ft.PaintingStyle.FILL,
+                        color=ft.Colors.with_opacity(0.1, ft.Colors.BLUE),
+                    ),
+                )
+            )
 
         self.shapes = canvas_shapes
         self.update()
@@ -791,8 +843,48 @@ class BlackboardCanvas(cv.Canvas):
             self.initial_pan_x = self.app_state.pan_x
             self.initial_pan_y = self.app_state.pan_y
 
+        elif self.app_state.current_tool == ToolType.BOX_SELECTION:
+            # Check if we clicked on an existing selected shape.
+            # If so, we want to MOVE, not start a new box selection.
+            # UNLESS shift is held? Usually clicking a selected shape with shift might deselect it or just be ignored.
+            # Standard: Click on selected -> Move. Click on empty/unselected -> New selection.
+
+            hit_shape = self.hit_test(wx, wy)
+            clicked_on_selected = (
+                hit_shape and hit_shape.id in self.app_state.selected_shape_ids
+            )
+
+            if clicked_on_selected:
+                # Switch to "move" mode (temporarily treat like SELECTION tool logic for moving)
+                # We can just reuse the SELECTION tool logic block by calling it or copying it.
+                # Let's copy the essential move initialization logic.
+                self.drag_start_wx = wx
+                self.drag_start_wy = wy
+                self.moving_shapes_initial_state = {}
+                for s in self.app_state.shapes:
+                    if s.id in self.app_state.selected_shape_ids:
+                        state = {"x": s.x, "y": s.y}
+                        if isinstance(s, Line):
+                            state.update({"end_x": s.end_x, "end_y": s.end_y})
+                        elif isinstance(s, Polygon):
+                            state.update({"points": list(s.points)})
+                        self.moving_shapes_initial_state[s.id] = state
+
+                # IMPORTANT: We are NOT starting a box selection.
+                self.box_select_start_wx = None
+                return
+
+            # Start box selection (default behavior for empty space or unselected object)
+            self.box_select_start_wx = wx
+            self.box_select_start_wy = wy
+            self.box_select_rect = (wx, wy, 0, 0)
+            # Clear selection unless shift is held
+            if not self.app_state.is_shift_down:
+                self.app_state.select_shape(None)
+
         elif self.app_state.current_tool == ToolType.SELECTION:
             # Check for resize handles on selected shape first
+
             if self.app_state.selected_shape_id:
                 selected_shape = next(
                     (
@@ -811,18 +903,36 @@ class BlackboardCanvas(cv.Canvas):
 
             hit_shape = self.hit_test(wx, wy)
             if hit_shape:
-                self.app_state.select_shape(hit_shape.id)
+                if self.app_state.is_shift_down:
+                    # Toggle selection
+                    if hit_shape.id in self.app_state.selected_shape_ids:
+                        self.app_state.selected_shape_ids.remove(hit_shape.id)
+                        self.app_state.select_shapes(
+                            list(self.app_state.selected_shape_ids)
+                        )  # Force notify
+                    else:
+                        current_ids = list(self.app_state.selected_shape_ids)
+                        current_ids.append(hit_shape.id)
+                        self.app_state.select_shapes(current_ids)
+                elif hit_shape.id not in self.app_state.selected_shape_ids:
+                    self.app_state.select_shape(hit_shape.id)
+
                 self.drag_start_wx = wx
                 self.drag_start_wy = wy
-                self.moving_shape_initial_x = hit_shape.x
-                self.moving_shape_initial_y = hit_shape.y
-                if isinstance(hit_shape, Line):
-                    self.moving_shape_initial_end_x = hit_shape.end_x
-                    self.moving_shape_initial_end_y = hit_shape.end_y
-                elif isinstance(hit_shape, Polygon):
-                    self.moving_shape_initial_points = list(hit_shape.points)
+                # Store initial positions for ALL selected shapes
+                self.moving_shapes_initial_state = {}
+                for s in self.app_state.shapes:
+                    if s.id in self.app_state.selected_shape_ids:
+                        state = {"x": s.x, "y": s.y}
+                        if isinstance(s, Line):
+                            state.update({"end_x": s.end_x, "end_y": s.end_y})
+                        elif isinstance(s, Polygon):
+                            state.update({"points": list(s.points)})
+                        self.moving_shapes_initial_state[s.id] = state
+
             else:
                 self.app_state.select_shape(None)
+
                 # Fallback to pan if background clicked? Or box select.
                 # For now, let's allow pan if background clicked in selection mode
                 self.start_pan_x = e.local_x
@@ -954,7 +1064,26 @@ class BlackboardCanvas(cv.Canvas):
             self.app_state.set_pan(self.initial_pan_x + dx, self.initial_pan_y + dy)
             return
 
+        if self.app_state.current_tool == ToolType.BOX_SELECTION:
+            if self.box_select_start_wx is not None:
+                w = wx - self.box_select_start_wx
+                h = wy - self.box_select_start_wy
+                self.box_select_rect = (
+                    self.box_select_start_wx,
+                    self.box_select_start_wy,
+                    w,
+                    h,
+                )
+                self.app_state.notify()  # Trigger redraw to show box
+                return
+
+            # If we are NOT box selecting, but we have selected shapes, we might be moving them
+            # (initiated in on_pan_start).
+            # Fallthrough to update_active_interaction logic below.
+            pass
+
         # Special handling for Selection Move (Pan) since it relies on screen/world deltas
+
         # Ideally we refactor this too, but for now let's keep it here or handle in update_active_interaction
         # Logic for selection move doesn't depend on shift key (yet), so it's less critical.
         # But to be clean, let's delegate.
@@ -1147,7 +1276,7 @@ class BlackboardCanvas(cv.Canvas):
             self._is_updating_interaction = False
 
     def _update_active_interaction_internal(self, wx, wy, prev_wx=None, prev_wy=None):
-        if self.app_state.current_tool == ToolType.SELECTION:
+        if self.app_state.current_tool in (ToolType.SELECTION, ToolType.BOX_SELECTION):
             if self.resizing_shape:
                 # Handle resizing
                 shape = self.resizing_shape
@@ -1275,7 +1404,7 @@ class BlackboardCanvas(cv.Canvas):
                 self.app_state.update_shape(shape)
                 return
 
-            if self.app_state.selected_shape_id:
+            if self.app_state.selected_shape_ids:
                 # Move object
                 # Calculate frame delta
                 if prev_wx is not None and prev_wy is not None:
@@ -1288,17 +1417,10 @@ class BlackboardCanvas(cv.Canvas):
                 if dx == 0 and dy == 0:
                     return
 
-                # Find shape
-                shape = next(
-                    (
-                        s
-                        for s in self.app_state.shapes
-                        if s.id == self.app_state.selected_shape_id
-                    ),
-                    None,
-                )
-                if shape:
-                    self.app_state.update_shape_position(shape, dx, dy)
+                # Move all selected shapes
+                for shape in self.app_state.shapes:
+                    if shape.id in self.app_state.selected_shape_ids:
+                        self.app_state.update_shape_position(shape, dx, dy)
             else:
                 # Pan logic handled in on_pan_update for now or here?
                 # e.local_x is not available here.
@@ -1431,14 +1553,94 @@ class BlackboardCanvas(cv.Canvas):
                         self.current_drawing_shape.end_y = ay
                         break
 
-                self.app_state.notify()
+        self.app_state.notify()
+
+        if self.app_state.current_tool == ToolType.BOX_SELECTION:
+            if self.box_select_start_wx is not None:
+                if self.box_select_rect:
+                    # Find shapes inside rect
+                    x, y, w, h = self.box_select_rect
+                    # Normalize rect
+                    if w < 0:
+                        x += w
+                        w = abs(w)
+                    if h < 0:
+                        y += h
+                        h = abs(h)
+
+                    found_ids = []
+                    for shape in self.app_state.shapes:
+                        if self._is_shape_in_rect(shape, x, y, w, h):
+                            found_ids.append(shape.id)
+
+                    # Logic for shift key (add to selection)
+                    if self.app_state.is_shift_down:
+                        current = list(self.app_state.selected_shape_ids)
+                        # Add unique new ones
+                        for fid in found_ids:
+                            if fid not in current:
+                                current.append(fid)
+                        self.app_state.select_shapes(current)
+                    else:
+                        self.app_state.select_shapes(found_ids)
+
+                self.box_select_rect = None
+                self.box_select_start_wx = None
+                self.box_select_start_wy = None
+                # Switch back to normal selection? Or keep tool active?
+                # Standard behavior: keep tool active for another box select.
+                # User can switch to object selection manually.
+                self.app_state.notify()  # Clear the box
 
         self.current_drawing_shape = None
+
         self.resize_handle = None
         self.resizing_shape = None
 
         # Reset shift key state on drag end to prevent stuck keys
         self.app_state.set_shift_key(False)
+
+    def _is_shape_in_rect(self, shape, rx, ry, rw, rh):
+        # Helper to check if shape is strictly inside rect (or intersects?)
+        # "select all objects within the box" usually means fully contained or intersecting.
+        # Common behavior: Intersecting.
+        # Let's start with a simple bounding box intersection check.
+
+        # Get bounding box of shape
+        if isinstance(shape, Rectangle):
+            sx, sy, sw, sh = shape.x, shape.y, shape.width, shape.height
+        elif isinstance(shape, Circle):
+            sx, sy, sw, sh = shape.x, shape.y, shape.radius_x * 2, shape.radius_y * 2
+        elif isinstance(shape, Line):
+            sx = min(shape.x, shape.end_x)
+            sy = min(shape.y, shape.end_y)
+            sw = abs(shape.x - shape.end_x)
+            sh = abs(shape.y - shape.end_y)
+        elif isinstance(shape, Text):
+            sx, sy = shape.x, shape.y
+            sw = len(shape.content) * shape.font_size * 0.6  # approx
+            sh = shape.font_size
+        elif isinstance(shape, Polygon):
+            xs = [p[0] for p in shape.points]
+            ys = [p[1] for p in shape.points]
+            if not xs:
+                return False
+            sx, sy = min(xs), min(ys)
+            sw = max(xs) - min(xs)
+            sh = max(ys) - min(ys)
+        elif isinstance(shape, Path):
+            if not shape.points:
+                return False
+            xs = [p[0] for p in shape.points]
+            ys = [p[1] for p in shape.points]
+            sx, sy = min(xs), min(ys)
+            sw = max(xs) - min(xs)
+            sh = max(ys) - min(ys)
+        else:
+            return False
+
+        # Check intersection
+        return sx < rx + rw and sx + sw > rx and sy < ry + rh and sy + sh > ry
 
     def on_hover(self, e: ft.HoverEvent):
         # Update hover coordinates

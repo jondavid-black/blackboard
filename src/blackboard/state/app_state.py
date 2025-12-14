@@ -10,7 +10,7 @@ class AppState:
     def __init__(self, storage_service: Optional[StorageService] = None):
         self.storage = storage_service or StorageService()
         self.shapes, view_data = self.storage.load_data()
-        self.selected_shape_id: Optional[str] = None
+        self.selected_shape_ids: set[str] = set()
         self.current_tool: ToolType = ToolType.HAND
 
         # Canvas transformation
@@ -45,8 +45,12 @@ class AppState:
     def set_tool(self, tool: ToolType):
         self.current_tool = tool
         # Clear selection when switching to drawing tools
-        if tool != ToolType.SELECTION and tool != ToolType.HAND:
-            self.selected_shape_id = None
+        if (
+            tool != ToolType.SELECTION
+            and tool != ToolType.HAND
+            and tool != ToolType.BOX_SELECTION
+        ):
+            self.selected_shape_ids.clear()
         self.notify()
 
     def add_shape(self, shape: Shape):
@@ -56,8 +60,8 @@ class AppState:
     def remove_shape(self, shape: Shape):
         if shape in self.shapes:
             self.shapes.remove(shape)
-            if self.selected_shape_id == shape.id:
-                self.selected_shape_id = None
+            if shape.id in self.selected_shape_ids:
+                self.selected_shape_ids.remove(shape.id)
             self.notify(save=True)
 
     def update_shape_position(
@@ -96,6 +100,11 @@ class AppState:
 
         for s in self.shapes:
             if isinstance(s, Line):
+                # If the line itself is selected, it will be moved explicitly by the interaction loop.
+                # We should NOT move it here to avoid double-movement.
+                if s.id in self.selected_shape_ids:
+                    continue
+
                 if s.start_shape_id == moved_shape.id:
                     s.x += dx
                     s.y += dy
@@ -138,8 +147,22 @@ class AppState:
                         s.end_y = ay
 
     def select_shape(self, shape_id: Optional[str]):
-        self.selected_shape_id = shape_id
+        self.selected_shape_ids.clear()
+        if shape_id:
+            self.selected_shape_ids.add(shape_id)
         self.notify()
+
+    def select_shapes(self, shape_ids: list[str]):
+        self.selected_shape_ids.clear()
+        self.selected_shape_ids.update(shape_ids)
+        self.notify()
+
+    @property
+    def selected_shape_id(self) -> Optional[str]:
+        # Backwards compatibility helper
+        if len(self.selected_shape_ids) == 1:
+            return list(self.selected_shape_ids)[0]
+        return None
 
     def set_pan(self, x: float, y: float):
         self.pan_x = x
@@ -248,5 +271,5 @@ class AppState:
         self.pan_x = view_data.get("pan_x", 0.0)
         self.pan_y = view_data.get("pan_y", 0.0)
         self.zoom = view_data.get("zoom", 1.0)
-        self.selected_shape_id = None
+        self.selected_shape_ids.clear()
         self.notify()

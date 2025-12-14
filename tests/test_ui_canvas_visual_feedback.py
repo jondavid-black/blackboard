@@ -1,4 +1,3 @@
-import math
 from unittest.mock import MagicMock
 from blackboard.models import Rectangle, Line, ToolType
 from blackboard.ui.canvas import BlackboardCanvas
@@ -15,9 +14,21 @@ class MockAppState(AppState):
         self.theme_mode = "light"
         self.current_tool = ToolType.LINE
         self._listeners = []
-        self.selected_shape_id = None
+        self.selected_shape_ids = set()
         self.is_shift_down = False
         self.selected_line_type = "simple"
+
+    @property
+    def selected_shape_id(self):
+        if len(self.selected_shape_ids) == 1:
+            return list(self.selected_shape_ids)[0]
+        return None
+
+    @selected_shape_id.setter
+    def selected_shape_id(self, value):
+        self.selected_shape_ids.clear()
+        if value:
+            self.selected_shape_ids.add(value)
 
     def add_listener(self, listener):
         pass

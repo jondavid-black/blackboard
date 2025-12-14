@@ -1,5 +1,4 @@
 import uuid
-import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Tuple
@@ -15,6 +14,7 @@ class ToolType(Enum):
     PEN = "pen"
     ERASER = "eraser"
     POLYGON = "polygon"
+    BOX_SELECTION = "box_selection"
 
 
 @dataclass

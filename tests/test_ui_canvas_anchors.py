@@ -14,8 +14,20 @@ class MockAppState(AppState):
         self.theme_mode = "light"
         self.current_tool = "selection"
         self._listeners = []
-        self.selected_shape_id = None
+        self.selected_shape_ids = set()
         self.is_shift_down = False
+
+    @property
+    def selected_shape_id(self):
+        if len(self.selected_shape_ids) == 1:
+            return list(self.selected_shape_ids)[0]
+        return None
+
+    @selected_shape_id.setter
+    def selected_shape_id(self, value):
+        self.selected_shape_ids.clear()
+        if value:
+            self.selected_shape_ids.add(value)
 
     def add_listener(self, listener):
         pass
