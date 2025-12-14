@@ -142,42 +142,13 @@ class BlackboardCanvas(cv.Canvas):
         # Rebuild canvas shapes based on state
 
         canvas_shapes = []
+        overlay_shapes = []
 
         # Determine stroke color based on theme
 
         default_stroke_color = (
             ft.Colors.WHITE if self.app_state.theme_mode == "dark" else ft.Colors.BLACK
         )
-
-        # Hover logic for anchors
-        if self.app_state.current_tool == ToolType.LINE:
-            # Check if we are hovering a shape to show anchors
-            threshold = 10 / self.app_state.zoom
-
-            # Find shape under mouse
-            hit_shape = self.hit_test(self.hover_wx, self.hover_wy)
-
-            if hit_shape:
-                self._draw_anchors(canvas_shapes, hit_shape, threshold)
-
-            # ALSO show anchors for shape under drag end if we are dragging a line
-            if self.current_drawing_shape and isinstance(
-                self.current_drawing_shape, Line
-            ):
-                # We need to find the shape under the current end position
-                # self.last_wx, self.last_wy track the current drag position
-                end_shape = self.hit_test(
-                    self.last_wx,
-                    self.last_wy,
-                    exclude_ids={self.current_drawing_shape.id},
-                )
-                if end_shape and end_shape != hit_shape:
-                    self._draw_anchors(
-                        canvas_shapes,
-                        end_shape,
-                        threshold,
-                        check_hover_at_drag_end=True,
-                    )
 
         for shape in self.app_state.shapes:
             # Use shape color if set, otherwise default based on theme
@@ -283,7 +254,7 @@ class BlackboardCanvas(cv.Canvas):
 
                     handle_size = 8
                     hs = handle_size / 2
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx1 - hs,
                             sy1 - hs,
@@ -292,7 +263,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx2 - hs,
                             sy2 - hs,
@@ -318,7 +289,7 @@ class BlackboardCanvas(cv.Canvas):
                     hs = handle_size / 2
 
                     # 4 Corners
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx - hs,
                             sy - hs,
@@ -327,7 +298,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # TL
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx + w - hs,
                             sy - hs,
@@ -336,7 +307,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # TR
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx - hs,
                             sy + h - hs,
@@ -345,7 +316,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # BL
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx + w - hs,
                             sy + h - hs,
@@ -375,7 +346,7 @@ class BlackboardCanvas(cv.Canvas):
                     hs = handle_size / 2
 
                     # 4 Corners of bounding box
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx - hs,
                             sy - hs,
@@ -384,7 +355,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # TL
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx + w - hs,
                             sy - hs,
@@ -393,7 +364,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # TR
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx - hs,
                             sy + h - hs,
@@ -402,7 +373,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # BL
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx + w - hs,
                             sy + h - hs,
@@ -490,7 +461,7 @@ class BlackboardCanvas(cv.Canvas):
                     h = (max_y - min_y) * self.app_state.zoom
 
                     # 4 Corners of bounding box
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx1 - hs,
                             sy1 - hs,
@@ -499,7 +470,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # TL
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx1 + w - hs,
                             sy1 - hs,
@@ -508,7 +479,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # TR
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx1 - hs,
                             sy1 + h - hs,
@@ -517,7 +488,7 @@ class BlackboardCanvas(cv.Canvas):
                             paint=handle_paint,
                         )
                     )  # BL
-                    canvas_shapes.append(
+                    overlay_shapes.append(
                         cv.Rect(
                             sx1 + w - hs,
                             sy1 + h - hs,
@@ -527,6 +498,67 @@ class BlackboardCanvas(cv.Canvas):
                         )
                     )  # BR
 
+        # Hover logic for anchors (now in overlay_shapes, drawn ON TOP)
+        if self.app_state.current_tool == ToolType.LINE:
+            # Check if we are hovering a shape to show anchors
+            threshold = 10 / self.app_state.zoom
+
+            # Find shape under mouse
+            hit_shape = self.hit_test(self.hover_wx, self.hover_wy)
+
+            if hit_shape:
+                self._draw_anchors(overlay_shapes, hit_shape, threshold)
+
+            # ALSO show anchors for shape under drag end if we are dragging a line
+            if self.current_drawing_shape and isinstance(
+                self.current_drawing_shape, Line
+            ):
+                # Snap logic: Iterate all shapes to find the closest anchor
+                # We do NOT rely on hit_test because we want to snap to anchors
+                # even if we are slightly outside the shape's body (e.g. approaching a corner).
+
+                closest_anchor = None
+                closest_shape = None
+                min_dist = float("inf")
+
+                for shape in self.app_state.shapes:
+                    if shape.id == self.current_drawing_shape.id:
+                        continue
+
+                    anchors = self.get_anchors(shape)
+                    for anchor_id, ax, ay in anchors:
+                        dist = math.hypot(self.last_wx - ax, self.last_wy - ay)
+                        if dist < threshold and dist < min_dist:
+                            min_dist = dist
+                            closest_anchor = (ax, ay)
+                            closest_shape = shape
+
+                if closest_anchor and closest_shape:
+                    asx, asy = self.to_screen(closest_anchor[0], closest_anchor[1])
+                    # Draw a highlight circle (Green for "Snap")
+                    overlay_shapes.append(
+                        cv.Circle(
+                            asx,
+                            asy,
+                            radius=8,
+                            paint=ft.Paint(
+                                style=ft.PaintingStyle.STROKE,
+                                color=ft.Colors.GREEN,
+                                stroke_width=2,
+                            ),
+                        )
+                    )
+
+                    # Also draw all anchors for context if not same as hit_shape
+                    # This helps the user see other options on the same shape
+                    if closest_shape != hit_shape:
+                        self._draw_anchors(
+                            overlay_shapes,
+                            closest_shape,
+                            threshold,
+                            check_hover_at_drag_end=True,
+                        )
+
         if self.box_select_rect:
             x, y, w, h = self.box_select_rect
             # Convert world rect to screen
@@ -535,7 +567,8 @@ class BlackboardCanvas(cv.Canvas):
             sh = h * self.app_state.zoom
 
             # Use negative width/height support of cv.Rect
-            canvas_shapes.append(
+            # Box selection should be on top
+            overlay_shapes.append(
                 cv.Rect(
                     sx,
                     sy,
@@ -549,7 +582,7 @@ class BlackboardCanvas(cv.Canvas):
                 )
             )
             # Add semi-transparent fill
-            canvas_shapes.append(
+            overlay_shapes.append(
                 cv.Rect(
                     sx,
                     sy,
@@ -562,7 +595,7 @@ class BlackboardCanvas(cv.Canvas):
                 )
             )
 
-        self.shapes = canvas_shapes
+        self.shapes = canvas_shapes + overlay_shapes
         self.update()
 
     def get_resize_handle(self, shape, wx, wy):
@@ -1517,26 +1550,48 @@ class BlackboardCanvas(cv.Canvas):
         ):
             # Check for end shape connection
             # Use last world coordinates from pan_update (self.last_wx, self.last_wy)
-            # But we should ignore the line itself being drawn
             wx, wy = self.last_wx, self.last_wy
 
-            end_shape = self.hit_test(
-                wx, wy, exclude_ids={self.current_drawing_shape.id}
-            )
+            # Search for closest anchor across ALL shapes (matching visual feedback logic)
+            threshold = 10 / self.app_state.zoom
 
-            if end_shape:
-                self.current_drawing_shape.end_shape_id = end_shape.id
+            closest_anchor_id = None
+            closest_shape_id = None
+            min_dist = float("inf")
+            best_ax, best_ay = None, None
 
-                # Check for anchor snap on end
-                threshold = 10 / self.app_state.zoom
-                anchors = self.get_anchors(end_shape)
+            for shape in self.app_state.shapes:
+                if shape.id == self.current_drawing_shape.id:
+                    continue
+
+                anchors = self.get_anchors(shape)
                 for anchor_id, ax, ay in anchors:
-                    if math.hypot(wx - ax, wy - ay) < threshold:
-                        self.current_drawing_shape.end_anchor_id = anchor_id
-                        # Snap end point
-                        self.current_drawing_shape.end_x = ax
-                        self.current_drawing_shape.end_y = ay
-                        break
+                    dist = math.hypot(wx - ax, wy - ay)
+                    if dist < threshold and dist < min_dist:
+                        min_dist = dist
+                        closest_anchor_id = anchor_id
+                        closest_shape_id = shape.id
+                        best_ax, best_ay = ax, ay
+
+            if closest_shape_id and closest_anchor_id:
+                # Snap to anchor
+                self.current_drawing_shape.end_shape_id = closest_shape_id
+                self.current_drawing_shape.end_anchor_id = closest_anchor_id
+                self.current_drawing_shape.end_x = best_ax
+                self.current_drawing_shape.end_y = best_ay
+            else:
+                # Fallback to simple hit test if no anchor snap (e.g. connecting to body?)
+                # Requirement implies connecting to anchors mainly.
+                # But existing logic allowed connecting to shape without anchor?
+                # "Line ends can be connected to anchors."
+                # If we didn't hit an anchor, did we hit a shape?
+                end_shape = self.hit_test(
+                    wx, wy, exclude_ids={self.current_drawing_shape.id}
+                )
+                if end_shape:
+                    self.current_drawing_shape.end_shape_id = end_shape.id
+                    # No anchor snapped, just shape association
+                    # (Previous logic allowed this)
 
         self.app_state.notify()
 

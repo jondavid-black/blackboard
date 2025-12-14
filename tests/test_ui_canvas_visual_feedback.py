@@ -136,3 +136,16 @@ def test_visual_feedback_during_line_drag():
     highlighted = red_anchors[0]
     assert highlighted.x == 200
     assert highlighted.y == 25
+
+    # 6. Verify the "Green Snap Ring" is present
+    # It should be a Circle with Green stroke
+    green_rings = [
+        c
+        for c in circles
+        if c.paint.color == ft.Colors.GREEN and c.paint.style == ft.PaintingStyle.STROKE
+    ]
+    assert len(green_rings) > 0
+    snap_ring = green_rings[0]
+    assert snap_ring.x == 200
+    assert snap_ring.y == 25
+    assert snap_ring.radius == 8  # As updated in canvas.py
