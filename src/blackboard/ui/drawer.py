@@ -512,17 +512,18 @@ class Drawer(ft.Container):
                 opacity=float(e.control.value) / 100
             )
 
-        def on_stroke_color_change(e):
-            self.app_state.update_selected_shapes_properties(
-                stroke_color=e.control.content.bgcolor
-            )
+        def on_stroke_color_change(color):
+            self.app_state.update_selected_shapes_properties(stroke_color=color)
 
-        def on_fill_color_change(e):
-            color = e.control.content.bgcolor
-            filled = color != "transparent"
-            self.app_state.update_selected_shapes_properties(
-                fill_color=color, filled=filled
-            )
+        def on_fill_color_change(color):
+            if color == "transparent":
+                self.app_state.update_selected_shapes_properties(
+                    fill_color="transparent", filled=False
+                )
+            else:
+                self.app_state.update_selected_shapes_properties(
+                    fill_color=color, filled=True
+                )
 
         def on_line_style_change(e):
             style = e.control.value
@@ -575,14 +576,22 @@ class Drawer(ft.Container):
         stroke_swatches = ft.Row(wrap=True, spacing=5)
         for c in colors[:-1]:  # No transparent stroke usually
             stroke_swatches.controls.append(
-                create_color_swatch(c, first_shape.stroke_color, on_stroke_color_change)
+                create_color_swatch(
+                    c,
+                    first_shape.stroke_color,
+                    lambda _, color=c: on_stroke_color_change(color),
+                )
             )
 
         # Fill Color Swatches
         fill_swatches = ft.Row(wrap=True, spacing=5)
         for c in colors:
             fill_swatches.controls.append(
-                create_color_swatch(c, first_shape.fill_color, on_fill_color_change)
+                create_color_swatch(
+                    c,
+                    first_shape.fill_color,
+                    lambda _, color=c: on_fill_color_change(color),
+                )
             )
 
         current_style = "Solid"

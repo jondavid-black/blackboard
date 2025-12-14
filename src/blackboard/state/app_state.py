@@ -89,6 +89,7 @@ class AppState:
 
         self.exporter.export_to_png(self.shapes, filename)
 
+    def copy(self):
         if not self.selected_shape_ids:
             return
 

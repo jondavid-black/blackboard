@@ -55,8 +55,9 @@ def step_impl_check_toolbar(context):
 
     # Try to find buttons via accessibility labels
     try:
-        expect(page.get_by_label("Hand")).to_be_visible(timeout=2000)
-        expect(page.get_by_label("Selection")).to_be_visible()
+        # expect(page.get_by_label("Hand")).to_be_visible(timeout=2000) # Removed
+        expect(page.get_by_label("Selection", exact=True)).to_be_visible(timeout=2000)
+        expect(page.get_by_label("Box_selection")).to_be_visible()
         expect(page.get_by_label("Pen")).to_be_visible()
     except Exception:
         # If accessibility is not enabled, we can't find buttons by label.
@@ -184,23 +185,19 @@ def step_impl_select_tool_by_name(context, tool_name):
     page: Page = context.page
 
     tool_map = {
-        "box_selection": "Selection",  # It's inside the selection menu
+        "box_selection": "Box_selection",
         "selection": "Selection",
-        "hand": "Hand",
-        # Add others as needed
+        # "hand": "Hand", # Removed
     }
 
     label = tool_map.get(tool_name, tool_name)
 
     if tool_name == "box_selection":
-        # First click Selection main button (it might be a popup)
-        # In Flet, PopupMenuButton primary click opens the menu.
-        page.get_by_label("Selection").click()
-        # Then click the menu item "Multi-select"
-        # Wait for menu to appear
-        page.get_by_text("Multi-select").click()
+        # We now have a dedicated button for Box Selection (Multi-select)
+        page.get_by_label("Box_selection").click()
     else:
-        page.get_by_label(label).click()
+        # Use exact match to avoid ambiguity with "Box_selection" containing "Selection"
+        page.get_by_label(label, exact=True).click()
 
 
 @when("I drag from {x1}, {y1} to {x2}, {y2}")
@@ -274,8 +271,7 @@ def step_impl_select_rect(context):
     # Use normal selection click
     page: Page = context.page
     # Select Object Selection tool (default selection)
-    page.get_by_label("Selection").click()
-    page.get_by_text("Object Selection").click()
+    page.get_by_label("Selection", exact=True).click()
 
     # Click on rect (100,100 + offset)
     canvas = page.locator("canvas")

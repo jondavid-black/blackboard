@@ -1,5 +1,6 @@
-from typing import List, Tuple, Dict
-from blackboard.models import Shape
+from typing import List, Tuple, Dict, Any
+from blackboard.models import Shape, Line, Rectangle, Circle, Text, Path, Polygon, Group
+import dataclasses
 
 
 class MockStorageService:
@@ -12,6 +13,41 @@ class MockStorageService:
         # File management mocks
         self.files = ["default.json"]
         self.current_file = "default.json"
+
+    def _serialize_shape(self, shape: Shape) -> Dict[str, Any]:
+        return dataclasses.asdict(shape)
+
+    def _deserialize_shape(self, data: Dict[str, Any]) -> Shape:
+        shape_type = data.get("type")
+
+        if shape_type == "line":
+            return Line(**data)
+        elif shape_type == "rectangle":
+            return Rectangle(**data)
+        elif shape_type == "circle":
+            if "radius" in data:
+                r = data.pop("radius")
+                if "radius_x" not in data:
+                    data["radius_x"] = r
+                if "radius_y" not in data:
+                    data["radius_y"] = r
+            return Circle(**data)
+        elif shape_type == "text":
+            return Text(**data)
+        elif shape_type == "path":
+            if "points" in data:
+                data["points"] = [tuple(p) for p in data["points"]]
+            return Path(**data)
+        elif shape_type == "polygon":
+            if "points" in data:
+                data["points"] = [tuple(p) for p in data["points"]]
+            return Polygon(**data)
+        elif shape_type == "group":
+            children_data = data.pop("children", [])
+            children = [self._deserialize_shape(c) for c in children_data]
+            return Group(children=children, **data)
+        else:
+            return Shape(**data)
 
     def load_data(self) -> Tuple[List[Shape], Dict[str, float]]:
         return self.shapes, self.view_data

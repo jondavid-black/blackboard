@@ -1,5 +1,4 @@
 import pytest
-import os
 from blackboard.state.app_state import AppState
 from blackboard.models import Rectangle, Circle
 from blackboard.storage.storage_service import StorageService

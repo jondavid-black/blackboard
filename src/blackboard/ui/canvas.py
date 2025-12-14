@@ -132,16 +132,6 @@ class BlackboardCanvas(cv.Canvas):
             if not final_color:
                 final_color = default_stroke_color
 
-            stroke_join = getattr(shape, "stroke_join", "miter")
-            stroke_join_enum = painting.StrokeJoin.MITER
-            stroke_cap_enum = ft.StrokeCap.BUTT
-            if stroke_join == "round":
-                stroke_join_enum = painting.StrokeJoin.ROUND
-                stroke_cap_enum = ft.StrokeCap.ROUND
-            elif stroke_join == "bevel":
-                stroke_join_enum = painting.StrokeJoin.BEVEL
-                stroke_cap_enum = ft.StrokeCap.SQUARE  # Just to have a different cap
-
             # Explicitly type cast or use values if enum matching is weird in Pylance/Runtime
             # But based on checks, they are correct.
             # Let's try to ensure we are using the one from the Paint signature if possible,
