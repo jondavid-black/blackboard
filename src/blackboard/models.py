@@ -31,6 +31,7 @@ class Shape:
         None  # None for solid, list for dash pattern
     )
     opacity: float = 1.0
+    stroke_join: str = "miter"  # miter, round, bevel
 
     def get_anchors(self) -> List[Tuple[str, float, float]]:
         """Returns a list of (anchor_id, x, y) tuples."""

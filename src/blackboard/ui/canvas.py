@@ -1,5 +1,6 @@
 import flet as ft
 import flet.canvas as cv
+import flet.core.painting as painting
 import math
 from ..state.app_state import AppState
 from ..models import ToolType, Shape, Line, Rectangle, Circle, Text, Path, Polygon
@@ -123,11 +124,28 @@ class BlackboardCanvas(cv.Canvas):
             if not final_color:
                 final_color = default_stroke_color
 
+            stroke_join = getattr(shape, "stroke_join", "miter")
+            stroke_join_enum = painting.StrokeJoin.MITER
+            stroke_cap_enum = ft.StrokeCap.BUTT
+            if stroke_join == "round":
+                stroke_join_enum = painting.StrokeJoin.ROUND
+                stroke_cap_enum = ft.StrokeCap.ROUND
+            elif stroke_join == "bevel":
+                stroke_join_enum = painting.StrokeJoin.BEVEL
+                stroke_cap_enum = ft.StrokeCap.SQUARE  # Just to have a different cap
+
+            # Explicitly type cast or use values if enum matching is weird in Pylance/Runtime
+            # But based on checks, they are correct.
+            # Let's try to ensure we are using the one from the Paint signature if possible,
+            # or just rely on the fact that flet exports them correctly.
+
             paint = ft.Paint(
                 color=final_color,
                 stroke_width=shape.stroke_width,
                 style=ft.PaintingStyle.STROKE,
                 stroke_dash_pattern=shape.stroke_dash_array,
+                stroke_join=stroke_join_enum,
+                stroke_cap=stroke_cap_enum,
             )
             # Apply opacity to color if needed (Flet Paint doesn't have direct opacity, controlled via color alpha)
             # But we can try setting opacity on the cv.Canvas Shape or just modify the color here.
@@ -202,9 +220,31 @@ class BlackboardCanvas(cv.Canvas):
             sx, sy = self.to_screen(shape.x, shape.y)
             w = shape.width * self.app_state.zoom
             h = shape.height * self.app_state.zoom
+
+            # Construct a Path for the rectangle to ensure stroke_join (corner style) works consistently
+            # IMPORTANT: For stroke_join to work, it must be a single continuous Path, not cv.Rect
+            path_elements = [
+                cv.Path.MoveTo(sx, sy),
+                cv.Path.LineTo(sx + w, sy),
+                cv.Path.LineTo(sx + w, sy + h),
+                cv.Path.LineTo(sx, sy + h),
+                cv.Path.Close(),
+            ]
+
             if fill_paint:
-                canvas_shapes.append(cv.Rect(sx, sy, w, h, paint=fill_paint))
-            canvas_shapes.append(cv.Rect(sx, sy, w, h, paint=paint))
+                canvas_shapes.append(
+                    cv.Path(
+                        elements=path_elements,
+                        paint=fill_paint,
+                    )
+                )
+
+            canvas_shapes.append(
+                cv.Path(
+                    elements=path_elements,
+                    paint=paint,
+                )
+            )
 
         elif isinstance(shape, Circle):
             sx, sy = self.to_screen(shape.x, shape.y)

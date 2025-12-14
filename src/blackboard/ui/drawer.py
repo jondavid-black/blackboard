@@ -486,6 +486,11 @@ class Drawer(ft.Container):
                 stroke_dash_array=dash_array
             )
 
+        def on_stroke_join_change(e):
+            self.app_state.update_selected_shapes_properties(
+                stroke_join=e.control.value.lower()
+            )
+
         # Helper to create color swatch
         def create_color_swatch(color, current_color, on_click):
             is_selected = current_color == color
@@ -572,6 +577,17 @@ class Drawer(ft.Container):
             ),
             ft.Text("Stroke Color"),
             stroke_swatches,
+            ft.Container(height=10),
+            ft.Text("Corner Style"),
+            ft.Dropdown(
+                value=getattr(first_shape, "stroke_join", "miter").capitalize(),
+                options=[
+                    ft.dropdown.Option("Miter"),
+                    ft.dropdown.Option("Round"),
+                    ft.dropdown.Option("Bevel"),
+                ],
+                on_change=on_stroke_join_change,
+            ),
             ft.Container(height=10),
             ft.Text("Fill Color"),
             fill_swatches,
