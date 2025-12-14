@@ -269,18 +269,25 @@ class PropertiesDrawer(BaseDrawer):
                 ]
             )
 
+        controls.append(ft.Container(height=10))
+
+        if first_shape.type != "text":
+            controls.extend(
+                [
+                    ft.Text("Stroke Width"),
+                    ft.Slider(
+                        min=1,
+                        max=20,
+                        divisions=19,
+                        value=first_shape.stroke_width,
+                        label="{value}",
+                        on_change=on_stroke_width_change,
+                    ),
+                ]
+            )
+
         controls.extend(
             [
-                ft.Container(height=10),
-                ft.Text("Stroke Width"),
-                ft.Slider(
-                    min=1,
-                    max=20,
-                    divisions=19,
-                    value=first_shape.stroke_width,
-                    label="{value}",
-                    on_change=on_stroke_width_change,
-                ),
                 ft.Text("Opacity"),
                 ft.Slider(
                     min=0,
@@ -290,31 +297,48 @@ class PropertiesDrawer(BaseDrawer):
                     label="{value}%",
                     on_change=on_opacity_change,
                 ),
-                ft.Text("Line Style"),
-                ft.Dropdown(
-                    value=current_style,
-                    options=[
-                        ft.dropdown.Option("Solid"),
-                        ft.dropdown.Option("Dashed"),
-                        ft.dropdown.Option("Dotted"),
-                    ],
-                    on_change=on_line_style_change,
-                ),
-                ft.Text("Color"),
-                stroke_swatches,
-                ft.Container(height=10),
-                ft.Text("Corner Style"),
-                ft.Dropdown(
-                    value=getattr(first_shape, "stroke_join", "miter").capitalize(),
-                    options=[
-                        ft.dropdown.Option("Miter"),
-                        ft.dropdown.Option("Round"),
-                        ft.dropdown.Option("Bevel"),
-                    ],
-                    on_change=on_stroke_join_change,
-                ),
             ]
         )
+
+        if first_shape.type != "text":
+            controls.extend(
+                [
+                    ft.Text("Line Style"),
+                    ft.Dropdown(
+                        value=current_style,
+                        options=[
+                            ft.dropdown.Option("Solid"),
+                            ft.dropdown.Option("Dashed"),
+                            ft.dropdown.Option("Dotted"),
+                        ],
+                        on_change=on_line_style_change,
+                    ),
+                ]
+            )
+
+        controls.extend(
+            [
+                ft.Text("Color"),
+                stroke_swatches,
+            ]
+        )
+
+        if first_shape.type != "text":
+            controls.extend(
+                [
+                    ft.Container(height=10),
+                    ft.Text("Corner Style"),
+                    ft.Dropdown(
+                        value=getattr(first_shape, "stroke_join", "miter").capitalize(),
+                        options=[
+                            ft.dropdown.Option("Miter"),
+                            ft.dropdown.Option("Round"),
+                            ft.dropdown.Option("Bevel"),
+                        ],
+                        on_change=on_stroke_join_change,
+                    ),
+                ]
+            )
 
         # Hide Fill for Text
         if first_shape.type != "text":
