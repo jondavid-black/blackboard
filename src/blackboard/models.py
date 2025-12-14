@@ -42,9 +42,15 @@ class Line(Shape):
     start_shape_id: str | None = None
     end_shape_id: str | None = None
     start_anchor_id: str | None = (
-        None  # e.g. "top", "bottom", "left", "right", "tl", "tr", "bl", "br"
+        None  # e.g. "top", "bottom", "left", "right", "tl", "tr", "bl", "br", "start", "end"
     )
     end_anchor_id: str | None = None
+
+    def get_anchors(self) -> List[Tuple[str, float, float]]:
+        return [
+            ("start", self.x, self.y),
+            ("end", self.end_x, self.end_y),
+        ]
 
 
 @dataclass

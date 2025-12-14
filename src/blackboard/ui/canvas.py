@@ -91,42 +91,7 @@ class BlackboardCanvas(cv.Canvas):
         return sx, sy
 
     def get_anchors(self, shape: Shape):
-        anchors = []
-        if isinstance(shape, Rectangle):
-            x, y, w, h = shape.x, shape.y, shape.width, shape.height
-            anchors.extend(
-                [
-                    ("top_left", x, y),
-                    ("top_right", x + w, y),
-                    ("bottom_right", x + w, y + h),
-                    ("bottom_left", x, y + h),
-                    ("top_center", x + w / 2, y),
-                    ("right_center", x + w, y + h / 2),
-                    ("bottom_center", x + w / 2, y + h),
-                    ("left_center", x, y + h / 2),
-                ]
-            )
-        elif isinstance(shape, Circle):
-            # Bounding box logic for now
-            # Better: points on the circumference
-            # Top, Right, Bottom, Left
-            cx = shape.x + shape.radius_x
-            cy = shape.y + shape.radius_y
-            rx, ry = shape.radius_x, shape.radius_y
-            anchors.extend(
-                [
-                    ("top_center", cx, cy - ry),
-                    ("right_center", cx + rx, cy),
-                    ("bottom_center", cx, cy + ry),
-                    ("left_center", cx - rx, cy),
-                ]
-            )
-        elif isinstance(shape, Polygon):
-            # Vertices
-            for i, p in enumerate(shape.points):
-                anchors.append((f"vertex_{i}", p[0], p[1]))
-
-        return anchors
+        return shape.get_anchors()
 
     def _draw_anchors(
         self, canvas_shapes, shape, threshold, check_hover_at_drag_end=False
@@ -1418,17 +1383,37 @@ class BlackboardCanvas(cv.Canvas):
                     return
 
                 # Move all selected shapes
+                # Create a copy to avoid issues if set changes during iteration (though unexpected)
+                # But we have recursive updates which might modify other shapes.
+                # Crucial: update_shape_position already triggers recursion.
+                # If multiple connected shapes are selected, we might move them twice!
+                # E.g. A and B are selected. B is attached to A.
+                # Move A -> updates A -> recursively updates B.
+                # Then Move B -> updates B again!
+
+                # To prevent double-moving, we should perhaps only move "independent" shapes in the selection?
+                # Or, update_shape_position needs to know it's part of a batch move.
+
+                # Simple fix: Pass the set of selected IDs to update_shape_position or a helper,
+                # and in the recursion, if a shape is ALSO in the selection set, DO NOT move it recursively
+                # (because it will be moved by the main loop).
+
+                # Actually, our current recursion in AppState `_update_connected_lines` checks:
+                # `if s.id in self.app_state.selected_shape_ids: continue`
+                # This PREVENTS recursive updates for selected shapes.
+                # So if A and B are selected, moving A will NOT update B recursively.
+                # Moving B (in the loop) will move B.
+                # This seems correct for rigid moves of a group.
+
                 for shape in self.app_state.shapes:
                     if shape.id in self.app_state.selected_shape_ids:
-                        self.app_state.update_shape_position(shape, dx, dy)
+                        self.app_state.update_shape_position(shape, dx, dy, save=False)
+
+                # Notify once at the end (or continuously for drag)
+                self.app_state.notify(save=False)  # Don't save on every drag step
+
             else:
-                # Pan logic handled in on_pan_update for now or here?
-                # e.local_x is not available here.
-                # So we leave Selection Pan (background drag) in on_pan_update if possible,
-                # but wait, on_pan_update called this.
-                # If we are in Selection mode and NO shape is selected, we are panning.
-                # But panning needs `e.local_x`.
-                # Let's handle panning in `on_pan_update` explicitly before calling this.
+                # Pan logic handled in on_pan_update
                 pass
 
         elif self.current_drawing_shape:

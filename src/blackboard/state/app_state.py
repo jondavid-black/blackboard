@@ -90,28 +90,28 @@ class AppState:
         """
         Finds all lines connected to moved_shape and updates their endpoints.
         """
-        # For now, we just move the line endpoints by the same delta.
-        # Ideally, we would re-calculate the anchor position if an anchor ID is present.
-        # But since we don't have access to the Canvas logic (get_anchors) here easily,
-        # moving by delta keeps them "stuck" effectively if the shape moves rigidly.
-        #
-        # TODO: Refactor to allow recalculating anchor positions if the shape changes size (resize),
-        # not just position. For rigid movement, dx/dy is sufficient.
+        # print(f"DEBUG: _update_connected_lines for {moved_shape.id} delta=({dx},{dy}). Shapes: {[s.id for s in self.shapes]}")
 
         for s in self.shapes:
             if isinstance(s, Line):
-                # If the line itself is selected, it will be moved explicitly by the interaction loop.
-                # We should NOT move it here to avoid double-movement.
                 if s.id in self.selected_shape_ids:
                     continue
 
+                # Check connection to start
                 if s.start_shape_id == moved_shape.id:
+                    # print(f"DEBUG: Line {s.id} start connected to {moved_shape.id}. Moving start.")
                     s.x += dx
                     s.y += dy
+                    # Recursive update
+                    self._update_connected_lines(s, dx, dy)
 
+                # Check connection to end
                 if s.end_shape_id == moved_shape.id:
+                    # print(f"DEBUG: Line {s.id} end connected to {moved_shape.id}. Moving end.")
                     s.end_x += dx
                     s.end_y += dy
+                    # Recursive update
+                    self._update_connected_lines(s, dx, dy)
 
     def update_shape(self, shape: Shape, save: bool = True):
         # Update connected lines if they are attached to anchors
@@ -129,22 +129,31 @@ class AppState:
         # Pre-calculate anchors for the shape to avoid re-calculating for every line
         anchors = shape.get_anchors()
         anchor_map = {a[0]: (a[1], a[2]) for a in anchors}
+        # print(f"DEBUG: Refreshing lines for {shape.id} ({shape.type}). Anchors: {anchor_map}")
 
         for s in self.shapes:
             if isinstance(s, Line):
+                # print(f"DEBUG: Checking line {s.id}. Start -> {s.start_shape_id}:{s.start_anchor_id}. End -> {s.end_shape_id}:{s.end_anchor_id}")
+
                 # Check Start
                 if s.start_shape_id == shape.id and s.start_anchor_id:
                     if s.start_anchor_id in anchor_map:
                         ax, ay = anchor_map[s.start_anchor_id]
+                        # print(f"DEBUG: Updating line {s.id} start to {ax}, {ay}")
                         s.x = ax
                         s.y = ay
+                        # Recursively update lines connected to this line's start
+                        self._refresh_connected_lines(s)
 
                 # Check End
                 if s.end_shape_id == shape.id and s.end_anchor_id:
                     if s.end_anchor_id in anchor_map:
                         ax, ay = anchor_map[s.end_anchor_id]
+                        # print(f"DEBUG: Updating line {s.id} end to {ax}, {ay}")
                         s.end_x = ax
                         s.end_y = ay
+                        # Recursively update lines connected to this line's end
+                        self._refresh_connected_lines(s)
 
     def select_shape(self, shape_id: Optional[str]):
         self.selected_shape_ids.clear()
