@@ -1,6 +1,7 @@
 from typing import List, Callable, Optional, TYPE_CHECKING
-from ..models import Shape, ToolType, Line, Polygon
+from ..models import Shape, ToolType, Line, Polygon, Group
 from ..storage.storage_service import StorageService
+from ..storage.exporter import Exporter
 
 if TYPE_CHECKING:
     pass
@@ -9,8 +10,20 @@ if TYPE_CHECKING:
 class AppState:
     def __init__(self, storage_service: Optional[StorageService] = None):
         self.storage = storage_service or StorageService()
-        self.shapes, view_data = self.storage.load_data()
+        self.shapes = []  # Initialize empty first
         self.selected_shape_ids: set[str] = set()
+
+        # Then load data if we can, but tests might rely on empty start
+        # Actually the problem is that load_data() loads from default.json which might have existing data
+        # We should accept an optional argument to skip loading or load from memory?
+        # Better: tests should mock StorageService or use a different file.
+        # But for now, let's just make sure we respect what's passed or what's expected.
+        # If storage_service is mocked, load_data might return empty.
+        # But in tests we are using real AppState which uses real StorageService by default.
+
+        loaded_shapes, view_data = self.storage.load_data()
+        self.shapes = loaded_shapes
+
         self.current_tool: ToolType = ToolType.HAND
 
         # Canvas transformation
@@ -28,6 +41,17 @@ class AppState:
         self.active_drawer_tab: Optional[str] = None  # None means closed
 
         self._listeners: List[Callable[[], None]] = []
+
+        # Undo/Redo
+        self.undo_stack: List[List[Shape]] = []
+        self.redo_stack: List[List[Shape]] = []
+        self._is_undoing_redoing: bool = False
+
+        # Exporter
+        self.exporter = Exporter()
+
+        # Clipboard
+        self.clipboard: List[dict] = []
 
     def add_listener(self, listener: Callable[[], None]):
         self._listeners.append(listener)
@@ -53,12 +77,168 @@ class AppState:
             self.selected_shape_ids.clear()
         self.notify()
 
+    def export_image(self, filename: str):
+        # Ensure extension
+        if not filename.lower().endswith(".png"):
+            filename += ".png"
+
+        # Export to data dir for now, or use absolute if provided?
+        # Let's assume relative to CWD if no path given, or just use storage conventions.
+        # But exporter handles paths.
+        import os
+
+        if not os.path.isabs(filename):
+            # Default to "exports" folder
+            filename = os.path.join("exports", filename)
+
+        self.exporter.export_to_png(self.shapes, filename)
+
+        if not self.selected_shape_ids:
+            return
+
+        self.clipboard.clear()
+        for shape in self.shapes:
+            if shape.id in self.selected_shape_ids:
+                # Serialize and store
+                serialized = self.storage._serialize_shape(shape)
+                self.clipboard.append(serialized)
+
+        # print(f"DEBUG: Copied {len(self.clipboard)} shapes to clipboard.")
+
+    def paste(self):
+        """
+        Pastes shapes from the internal clipboard.
+        Creates new instances, shifts them slightly, and selects them.
+        """
+        if not self.clipboard:
+            return
+
+        self.snapshot()  # Snapshot before adding new shapes
+
+        new_selection_ids = []
+        offset = 20  # Pixel offset for pasted items
+
+        for shape_data in self.clipboard:
+            # Deep copy the data
+            import copy
+
+            new_data = copy.deepcopy(shape_data)
+
+            # Generate new ID
+            import uuid
+
+            new_data["id"] = str(uuid.uuid4())
+
+            # Offset position
+            new_data["x"] = new_data.get("x", 0) + offset
+            new_data["y"] = new_data.get("y", 0) + offset
+
+            # Handle specific properties that need offsetting
+            type_ = new_data.get("type")
+            if type_ == "line":
+                new_data["end_x"] = new_data.get("end_x", 0) + offset
+                new_data["end_y"] = new_data.get("end_y", 0) + offset
+                # Clear connections on paste - typically we don't want to connect to original shapes
+                new_data["start_shape_id"] = None
+                new_data["end_shape_id"] = None
+
+            elif type_ == "polygon" or type_ == "path":
+                if "points" in new_data:
+                    new_data["points"] = [
+                        (p[0] + offset, p[1] + offset) for p in new_data["points"]
+                    ]
+
+            # Deserialize and add
+            new_shape = self.storage._deserialize_shape(new_data)
+            self.shapes.append(new_shape)
+            new_selection_ids.append(new_shape.id)
+
+        # Select pasted items
+        self.selected_shape_ids.clear()
+        self.selected_shape_ids.update(new_selection_ids)
+
+        self.notify(save=True)
+        # print(f"DEBUG: Pasted {len(new_selection_ids)} shapes.")
+
+    def snapshot(self):
+        """
+        Saves the current state to the undo stack.
+        Should be called BEFORE a destructive action.
+        """
+        if self._is_undoing_redoing:
+            return
+
+        # Deep copy is needed for undo/redo to work reliably
+        # We can use serialization as a deep copy mechanism
+        # Optimization: Only store necessary state
+        current_state = [self.storage._serialize_shape(s) for s in self.shapes]
+
+        # Limit stack size if needed (e.g. 50 steps)
+        if len(self.undo_stack) >= 50:
+            self.undo_stack.pop(0)
+
+        self.undo_stack.append(current_state)
+        self.redo_stack.clear()  # Clear redo stack on new action
+        # print(f"DEBUG: Snapshot taken. Undo stack size: {len(self.undo_stack)}")
+
+    def undo(self):
+        if not self.undo_stack:
+            return
+
+        self._is_undoing_redoing = True
+        try:
+            # 1. Save current state to redo stack
+            current_state = [self.storage._serialize_shape(s) for s in self.shapes]
+            self.redo_stack.append(current_state)
+
+            # 2. Pop from undo stack
+            previous_state_data = self.undo_stack.pop()
+
+            # 3. Restore state
+            self.shapes = [
+                self.storage._deserialize_shape(s) for s in previous_state_data
+            ]
+
+            # Clear selection to avoid selecting deleted shapes
+            self.selected_shape_ids.clear()
+
+            self.notify(save=True)
+            # print(f"DEBUG: Undo performed. Undo stack: {len(self.undo_stack)}, Redo stack: {len(self.redo_stack)}")
+        finally:
+            self._is_undoing_redoing = False
+
+    def redo(self):
+        if not self.redo_stack:
+            return
+
+        self._is_undoing_redoing = True
+        try:
+            # 1. Save current state to undo stack
+            current_state = [self.storage._serialize_shape(s) for s in self.shapes]
+            self.undo_stack.append(current_state)
+
+            # 2. Pop from redo stack
+            next_state_data = self.redo_stack.pop()
+
+            # 3. Restore state
+            self.shapes = [self.storage._deserialize_shape(s) for s in next_state_data]
+
+            # Clear selection
+            self.selected_shape_ids.clear()
+
+            self.notify(save=True)
+            # print(f"DEBUG: Redo performed. Undo stack: {len(self.undo_stack)}, Redo stack: {len(self.redo_stack)}")
+        finally:
+            self._is_undoing_redoing = False
+
     def add_shape(self, shape: Shape):
+        self.snapshot()
         self.shapes.append(shape)
         self.notify(save=True)
 
     def remove_shape(self, shape: Shape):
         if shape in self.shapes:
+            self.snapshot()
             self.shapes.remove(shape)
             if shape.id in self.selected_shape_ids:
                 self.selected_shape_ids.remove(shape.id)
@@ -80,6 +260,15 @@ class AppState:
         elif isinstance(shape, Polygon):
             new_points = [(px + dx, py + dy) for px, py in shape.points]
             shape.points = new_points
+        elif isinstance(shape, Group):
+            # Recursively move children
+            for child in shape.children:
+                # We don't save intermediate steps
+                # And we don't want to trigger recursive connected line updates for children here
+                # effectively, because we might want the group to move as a unit.
+                # But children might be lines connected to things OUTSIDE the group?
+                # For now, let's just move the child geometry.
+                self.update_shape_position(child, dx, dy, save=False)
 
         # Update connected lines
         self._update_connected_lines(shape, dx, dy)
@@ -343,12 +532,98 @@ class AppState:
             self.active_drawer_tab = tab_index
         self.notify()
 
+    def group_selection(self):
+        if not self.selected_shape_ids or len(self.selected_shape_ids) < 2:
+            return
+
+        self.snapshot()
+
+        # 1. Identify shapes to group
+        shapes_to_group = []
+        indices = []
+
+        for i, shape in enumerate(self.shapes):
+            if shape.id in self.selected_shape_ids:
+                shapes_to_group.append(shape)
+                indices.append(i)
+
+        # 2. Sort by index to maintain relative order if needed, or just remove them
+        # We need to remove them from self.shapes and add a new Group shape
+
+        # Remove old shapes
+        for shape in shapes_to_group:
+            self.shapes.remove(shape)
+
+        # 3. Create Group
+        import uuid
+
+        group = Group(id=str(uuid.uuid4()), type="group", children=shapes_to_group)
+
+        # 4. Insert Group at the position of the top-most shape
+        # We want the group to occupy the Z-index of the highest selected item.
+        # Logic: max(indices) is the index of the top-most item to be grouped.
+        # After removing all 'len(indices)' items, the slot where max(indices) was
+        # shifts down by (len(indices) - 1).
+        # Target index = max_index - (count_of_items_below_it_that_were_removed)
+        # Since all other selected items are by definition below max_index (or at it),
+        # count = len(indices) - 1.
+        insert_idx = max(indices) - len(indices) + 1 if indices else len(self.shapes)
+
+        # Remove old shapes
+        for shape in shapes_to_group:
+            self.shapes.remove(shape)
+
+        self.shapes.insert(insert_idx, group)
+
+        # 5. Update selection
+        self.selected_shape_ids.clear()
+        self.selected_shape_ids.add(group.id)
+
+        self.notify(save=True)
+
+    def ungroup_selection(self):
+        if not self.selected_shape_ids:
+            return
+
+        # We can only ungroup if we selected groups
+        groups_to_ungroup = []
+        for shape in self.shapes:
+            if shape.id in self.selected_shape_ids and isinstance(shape, Group):
+                groups_to_ungroup.append(shape)
+
+        if not groups_to_ungroup:
+            return
+
+        self.snapshot()
+
+        new_selection = set()
+
+        for group in groups_to_ungroup:
+            # Remove group
+            self.shapes.remove(group)
+
+            # Add children back
+            # We might want to adjust children's coordinates if group had its own x/y
+            # But currently Group logic assumes children keep their world coordinates relative to 0,0
+            # OR relative to group. For simplicity in MVP, let's say children store absolute world coords.
+            # If we move group, we update children.
+
+            for child in group.children:
+                self.shapes.append(child)
+                new_selection.add(child.id)
+
+        self.selected_shape_ids = new_selection
+        self.notify(save=True)
+
     def update_selected_shapes_properties(self, **properties):
         """
         Updates properties for all selected shapes.
         """
         if not self.selected_shape_ids:
             return
+
+        # Snapshot before modification
+        self.snapshot()
 
         updated = False
         for shape in self.shapes:
@@ -369,6 +644,7 @@ class AppState:
                 break
 
         if idx != -1 and idx < len(self.shapes) - 1:
+            self.snapshot()
             self.shapes[idx], self.shapes[idx + 1] = (
                 self.shapes[idx + 1],
                 self.shapes[idx],
@@ -383,6 +659,7 @@ class AppState:
                 break
 
         if idx > 0:
+            self.snapshot()
             self.shapes[idx], self.shapes[idx - 1] = (
                 self.shapes[idx - 1],
                 self.shapes[idx],

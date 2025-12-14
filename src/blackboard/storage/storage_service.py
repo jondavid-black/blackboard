@@ -225,5 +225,11 @@ class StorageService:
             if "points" in data:
                 data["points"] = [tuple(p) for p in data["points"]]
             return Polygon(**data)
+        elif shape_type == "group":
+            from ..models import Group
+
+            children_data = data.pop("children", [])
+            children = [self._deserialize_shape(c) for c in children_data]
+            return Group(children=children, **data)
         else:
             return Shape(**data)

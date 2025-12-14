@@ -22,6 +22,24 @@ def main(page: ft.Page):
         else:
             app_state.set_shift_key(False)
 
+        if e.ctrl:
+            if e.key == "z":
+                if e.shift:
+                    app_state.redo()
+                else:
+                    app_state.undo()
+            elif e.key == "y":
+                app_state.redo()
+            elif e.key == "c":
+                app_state.copy()
+            elif e.key == "v":
+                app_state.paste()
+            elif e.key == "g":
+                if e.shift:
+                    app_state.ungroup_selection()
+                else:
+                    app_state.group_selection()
+
     page.on_keyboard_event = on_keyboard_event
 
     toolbar = Toolbar(app_state)

@@ -63,6 +63,31 @@ class Toolbar(ft.Container):
                 self._build_tool_button(ToolType.TEXT, ft.Icons.TEXT_FIELDS),
                 ft.VerticalDivider(),
                 ft.IconButton(
+                    icon=ft.Icons.UNDO,
+                    on_click=lambda _: self.app_state.undo(),
+                    tooltip="Undo (Ctrl+Z)",
+                    disabled=len(self.app_state.undo_stack) == 0,
+                    icon_color=ft.Colors.WHITE
+                    if self.app_state.theme_mode == "dark"
+                    and len(self.app_state.undo_stack) > 0
+                    else ft.Colors.GREY
+                    if len(self.app_state.undo_stack) == 0
+                    else ft.Colors.BLACK,
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.REDO,
+                    on_click=lambda _: self.app_state.redo(),
+                    tooltip="Redo (Ctrl+Y)",
+                    disabled=len(self.app_state.redo_stack) == 0,
+                    icon_color=ft.Colors.WHITE
+                    if self.app_state.theme_mode == "dark"
+                    and len(self.app_state.redo_stack) > 0
+                    else ft.Colors.GREY
+                    if len(self.app_state.redo_stack) == 0
+                    else ft.Colors.BLACK,
+                ),
+                ft.VerticalDivider(),
+                ft.IconButton(
                     icon=ft.Icons.ZOOM_OUT,
                     on_click=lambda _: self._zoom(0.8),
                     tooltip="Zoom Out",

@@ -103,6 +103,34 @@ class Drawer(ft.Container):
             self.creation_input.error_text = str(ex)
             self.creation_input.update()
 
+    def _export_current_file(self):
+        current_file = self.app_state.get_current_filename()
+        if not current_file:
+            return
+
+        # Replace extension
+        if current_file.endswith(".json"):
+            export_name = current_file[:-5] + ".png"
+        else:
+            export_name = current_file + ".png"
+
+        try:
+            self.app_state.export_image(export_name)
+            if self.page:
+                self.page.show_snack_bar(
+                    ft.SnackBar(
+                        content=ft.Text(f"Exported to exports/{export_name}"),
+                        bgcolor=ft.Colors.GREEN,
+                    )
+                )
+        except Exception as e:
+            if self.page:
+                self.page.show_snack_bar(
+                    ft.SnackBar(
+                        content=ft.Text(f"Export failed: {e}"), bgcolor=ft.Colors.ERROR
+                    )
+                )
+
     def _get_files_content(self):
         files = self.app_state.list_files()
         folders = self.app_state.list_folders()
@@ -318,6 +346,13 @@ class Drawer(ft.Container):
                             icon_size=18,
                             on_click=lambda _: self._start_creation("file"),
                         ),
+                        ft.Container(width=5),  # Spacer
+                        ft.IconButton(
+                            ft.Icons.IMAGE_OUTLINED,
+                            tooltip="Export PNG",
+                            icon_size=18,
+                            on_click=lambda _: self._export_current_file(),
+                        ),
                     ],
                 ),
                 padding=ft.padding.only(left=10, right=5, top=5, bottom=5),
@@ -453,6 +488,20 @@ class Drawer(ft.Container):
                 ft.Text("Selection error", italic=True),
             ]
 
+        # Check for grouping capabilities
+        can_group = len(selected_ids) > 1
+        can_ungroup = False
+        for s in self.app_state.shapes:
+            if s.id in selected_ids and s.type == "group":
+                can_ungroup = True
+                break
+
+        def on_group_click(_):
+            self.app_state.group_selection()
+
+        def on_ungroup_click(_):
+            self.app_state.ungroup_selection()
+
         def on_stroke_width_change(e):
             self.app_state.update_selected_shapes_properties(
                 stroke_width=float(e.control.value)
@@ -546,6 +595,23 @@ class Drawer(ft.Container):
             ft.Text("Properties", size=20, weight=ft.FontWeight.BOLD),
             ft.Divider(),
             ft.Text(f"Selection: {len(selected_ids)} items"),
+            ft.Container(height=10),
+            ft.Row(
+                [
+                    ft.ElevatedButton(
+                        "Group",
+                        icon=ft.Icons.GROUP_WORK,
+                        on_click=on_group_click,
+                        disabled=not can_group,
+                    ),
+                    ft.ElevatedButton(
+                        "Ungroup",
+                        icon=ft.Icons.GROUP_OFF,
+                        on_click=on_ungroup_click,
+                        disabled=not can_ungroup,
+                    ),
+                ]
+            ),
             ft.Container(height=10),
             ft.Text("Stroke Width"),
             ft.Slider(

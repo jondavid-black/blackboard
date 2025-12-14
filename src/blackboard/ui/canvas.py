@@ -3,7 +3,17 @@ import flet.canvas as cv
 import flet.core.painting as painting
 import math
 from ..state.app_state import AppState
-from ..models import ToolType, Shape, Line, Rectangle, Circle, Text, Path, Polygon
+from ..models import (
+    ToolType,
+    Shape,
+    Line,
+    Rectangle,
+    Circle,
+    Text,
+    Path,
+    Polygon,
+    Group,
+)
 from .tools.line_tool import LineTool
 from .tools.rectangle_tool import RectangleTool
 from .tools.circle_tool import CircleTool
@@ -139,33 +149,7 @@ class BlackboardCanvas(cv.Canvas):
             # Let's try to ensure we are using the one from the Paint signature if possible,
             # or just rely on the fact that flet exports them correctly.
 
-            paint = ft.Paint(
-                color=final_color,
-                stroke_width=shape.stroke_width,
-                style=ft.PaintingStyle.STROKE,
-                stroke_dash_pattern=shape.stroke_dash_array,
-                stroke_join=stroke_join_enum,
-                stroke_cap=stroke_cap_enum,
-            )
-            # Apply opacity to color if needed (Flet Paint doesn't have direct opacity, controlled via color alpha)
-            # But we can try setting opacity on the cv.Canvas Shape or just modify the color here.
-            # ft.Colors are strings or hex.
-            # Let's rely on shape.opacity property if we add it, but for now user asked for opacity configuration.
-            # We added 'opacity' to Shape model.
-
-            # Since Flet colors are strings, handling alpha manually is tricky without a helper.
-            # However, cv shapes often have an opacity property? No, they use Paint.
-            # Paint has color. We might need to mix opacity into the color.
-            # For simplicity in this iteration, let's assume 'opacity' affects the whole shape layer
-            # OR we implement it by modulating the color alpha.
-            # Flet's cv.Canvas doesn't seem to have a global 'opacity' per shape.
-            # We will rely on the Paint's color having alpha.
-
-            # Actually, let's use the 'with_opacity' helper if available or string manipulation.
-            # ft.colors.with_opacity(opacity, color)
-
-            if hasattr(shape, "opacity") and shape.opacity < 1.0:
-                paint.color = ft.Colors.with_opacity(shape.opacity, final_color)
+            paint = self._create_paint(shape, final_color)
 
             # Highlight selected
             if (
@@ -179,7 +163,38 @@ class BlackboardCanvas(cv.Canvas):
                 # Selection highlight ignores dash array for visibility
                 paint.stroke_dash_pattern = None
 
-            self._draw_shape(canvas_shapes, shape, paint, final_color)
+            if isinstance(shape, Group):
+                # Draw children
+                for child in shape.children:
+                    # Determine paint for child
+                    child_stroke_color = (
+                        child.stroke_color
+                        if child.stroke_color
+                        else default_stroke_color
+                    )
+                    child_final_color = child_stroke_color
+                    if (
+                        self.app_state.theme_mode == "dark"
+                        and child_stroke_color == ft.Colors.BLACK
+                    ):
+                        child_final_color = ft.Colors.WHITE
+                    elif (
+                        self.app_state.theme_mode == "light"
+                        and child_stroke_color == ft.Colors.WHITE
+                    ):
+                        child_final_color = ft.Colors.BLACK
+
+                    if not child_final_color:
+                        child_final_color = default_stroke_color
+
+                    child_paint = self._create_paint(child, child_final_color)
+
+                    # Draw the child
+                    self._draw_shape(
+                        canvas_shapes, child, child_paint, child_final_color
+                    )
+            else:
+                self._draw_shape(canvas_shapes, shape, paint, final_color)
 
         # 2. Delegate overlay drawing to current tool
         current_tool = self.tools.get(self.app_state.current_tool)
@@ -188,6 +203,31 @@ class BlackboardCanvas(cv.Canvas):
 
         self.shapes = canvas_shapes + overlay_shapes
         self.update()
+
+    def _create_paint(self, shape, color):
+        stroke_join = getattr(shape, "stroke_join", "miter")
+        stroke_join_enum = painting.StrokeJoin.MITER
+        stroke_cap_enum = ft.StrokeCap.BUTT
+        if stroke_join == "round":
+            stroke_join_enum = painting.StrokeJoin.ROUND
+            stroke_cap_enum = ft.StrokeCap.ROUND
+        elif stroke_join == "bevel":
+            stroke_join_enum = painting.StrokeJoin.BEVEL
+            stroke_cap_enum = ft.StrokeCap.SQUARE
+
+        paint = ft.Paint(
+            color=color,
+            stroke_width=shape.stroke_width,
+            style=ft.PaintingStyle.STROKE,
+            stroke_dash_pattern=shape.stroke_dash_array,
+            stroke_join=stroke_join_enum,
+            stroke_cap=stroke_cap_enum,
+        )
+
+        if hasattr(shape, "opacity") and shape.opacity < 1.0:
+            paint.color = ft.Colors.with_opacity(shape.opacity, color)
+
+        return paint
 
     def _draw_shape(self, canvas_shapes, shape, paint, final_color):
         # Handle Fill
@@ -427,6 +467,141 @@ class BlackboardCanvas(cv.Canvas):
                     p1x, p1y = p2x, p2y
                 if inside:
                     return shape
+            elif isinstance(shape, Group):
+                # Check children. If we hit a child, we return the GROUP.
+                # Because selection should select the group, not the child.
+                # BUT, we might want to support deep selection later (e.g. ctrl+click).
+                # For now, standard behavior: click child -> select group.
+
+                # We need to use hit_test logic recursively but we can't easily call self.hit_test
+                # because we need to check against children list, not app_state.shapes.
+
+                # Simple recursion helper
+                for child in reversed(shape.children):
+                    # We can reuse the logic by temporarily mocking app_state.shapes? No that's messy.
+                    # Ideally we refactor hit_test to take a list of shapes.
+                    # For now, let's just duplicate the logic check or extract it.
+                    # Or, better: Refactor hit_test to accept a list of shapes to test against.
+                    pass
+
+                # Since we haven't refactored hit_test yet, let's do a quick hack:
+                # Iterate children and assume standard hit testing rules.
+                # But wait, Group children are standard shapes.
+                # So we can extract the hit test logic into a static method or helper?
+
+                # Let's refactor hit_test to accept a list of shapes!
+                pass
+
+        return None
+
+    def _hit_test_shapes(self, shapes, wx, wy):
+        """Helper to hit test a specific list of shapes."""
+        for shape in reversed(shapes):
+            if isinstance(shape, Group):
+                if self._hit_test_shapes(shape.children, wx, wy):
+                    return shape
+
+            # ... existing logic ...
+            # This is getting complex to copy-paste.
+            # Let's assume for now we just want to know if *any* child is hit.
+            # If so, return the group.
+
+            hit = self._is_point_in_shape(shape, wx, wy)
+            if hit:
+                return shape
+        return None
+
+    def _is_point_in_shape(self, shape, wx, wy):
+        if isinstance(shape, Rectangle):
+            return (
+                shape.x <= wx <= shape.x + shape.width
+                and shape.y <= wy <= shape.y + shape.height
+            )
+        elif isinstance(shape, Circle):
+            rx = shape.radius_x
+            ry = shape.radius_y
+            if rx == 0 or ry == 0:
+                return False
+            cx = shape.x + rx
+            cy = shape.y + ry
+            dx = wx - cx
+            dy = wy - cy
+            return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1
+        elif isinstance(shape, Line):
+            x1, y1 = shape.x, shape.y
+            x2, y2 = shape.end_x, shape.end_y
+            l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
+            if l2 == 0:
+                return math.sqrt((wx - x1) ** 2 + (wy - y1) ** 2) < 5
+            t = ((wx - x1) * (x2 - x1) + (wy - y1) * (y2 - y1)) / l2
+            t = max(0, min(1, t))
+            px = x1 + t * (x2 - x1)
+            py = y1 + t * (y2 - y1)
+            return math.sqrt((wx - px) ** 2 + (wy - py) ** 2) < 5 / self.app_state.zoom
+        elif isinstance(shape, Text):
+            return (
+                shape.x <= wx <= shape.x + (len(shape.content) * shape.font_size * 0.6)
+                and shape.y <= wy <= shape.y + shape.font_size
+            )
+        elif isinstance(shape, Path):
+            if not shape.points:
+                return False
+            threshold = 10 / self.app_state.zoom
+            for px, py in shape.points:
+                if math.hypot(wx - px, wy - py) < threshold:
+                    return True
+            for i in range(len(shape.points) - 1):
+                p1 = shape.points[i]
+                p2 = shape.points[i + 1]
+                x1, y1 = p1
+                x2, y2 = p2
+                l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
+                if l2 == 0:
+                    continue
+                t = ((wx - x1) * (x2 - x1) + (wy - y1) * (y2 - y1)) / l2
+                t = max(0, min(1, t))
+                px_proj = x1 + t * (x2 - x1)
+                py_proj = y1 + t * (y2 - y1)
+                if (
+                    math.sqrt((wx - px_proj) ** 2 + (wy - py_proj) ** 2)
+                    < 5 / self.app_state.zoom
+                ):
+                    return True
+            return False
+        elif isinstance(shape, Polygon):
+            n = len(shape.points)
+            inside = False
+            p1x, p1y = shape.points[0]
+            for i in range(n + 1):
+                p2x, p2y = shape.points[i % n]
+                if wy > min(p1y, p2y):
+                    if wy <= max(p1y, p2y):
+                        if wx <= max(p1x, p2x):
+                            if p1y != p2y:
+                                xinters = (wy - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                                if p1x == p2x or wx <= xinters:
+                                    inside = not inside
+                p1x, p1y = p2x, p2y
+            return inside
+        elif isinstance(shape, Group):
+            for child in shape.children:
+                if self._is_point_in_shape(child, wx, wy):
+                    return True
+        return False
+
+    def hit_test(self, wx, wy, exclude_ids=None):
+        if exclude_ids is None:
+            exclude_ids = set()
+        else:
+            exclude_ids = set(exclude_ids)
+
+        for shape in reversed(self.app_state.shapes):
+            if shape.id in exclude_ids:
+                continue
+
+            if self._is_point_in_shape(shape, wx, wy):
+                return shape
+
         return None
 
     def on_pan_start(self, e: ft.DragStartEvent):

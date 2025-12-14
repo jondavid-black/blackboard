@@ -135,3 +135,54 @@ class Polygon(Shape):
         for i, p in enumerate(self.points):
             anchors.append((f"vertex_{i}", p[0], p[1]))
         return anchors
+
+
+@dataclass
+class Group(Shape):
+    type: str = "group"
+    children: List[Shape] = field(default_factory=list)
+
+    def get_anchors(self) -> List[Tuple[str, float, float]]:
+        # Calculate bounding box of children
+        if not self.children:
+            return []
+
+        min_x, min_y = float("inf"), float("inf")
+        max_x, max_y = float("-inf"), float("-inf")
+
+        found = False
+        for child in self.children:
+            # We need a way to get bounds.
+            # We can use the logic similar to Exporter._get_bounds or duplicate it here.
+            # Or use child.get_anchors() to approximate bounds?
+            # get_anchors() returns specific points, which usually define the extrema.
+            anchors = child.get_anchors()
+            if not anchors:
+                continue
+
+            found = True
+            xs = [a[1] for a in anchors]
+            ys = [a[2] for a in anchors]
+            min_x = min(min_x, min(xs))
+            min_y = min(min_y, min(ys))
+            max_x = max(max_x, max(xs))
+            max_y = max(max_y, max(ys))
+
+        if not found:
+            return []
+
+        # Return standard 8-point box for the group
+        w = max_x - min_x
+        h = max_y - min_y
+        x, y = min_x, min_y
+
+        return [
+            ("top_left", x, y),
+            ("top_right", x + w, y),
+            ("bottom_right", x + w, y + h),
+            ("bottom_left", x, y + h),
+            ("top_center", x + w / 2, y),
+            ("right_center", x + w, y + h / 2),
+            ("bottom_center", x + w / 2, y + h),
+            ("left_center", x, y + h / 2),
+        ]
