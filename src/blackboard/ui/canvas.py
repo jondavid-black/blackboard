@@ -29,6 +29,7 @@ class BlackboardCanvas(cv.Canvas):
         self.gesture_container = ft.Container(
             expand=True, bgcolor=ft.Colors.TRANSPARENT
         )
+
         super().__init__(
             shapes=[],
             content=ft.GestureDetector(
@@ -919,18 +920,8 @@ class BlackboardCanvas(cv.Canvas):
             self.app_state.add_shape(self.current_drawing_shape)
 
         elif self.app_state.current_tool == ToolType.TEXT:
-            # For prototype, just add text. In real app, show input.
-            color = (
-                ft.Colors.WHITE
-                if self.app_state.theme_mode == "dark"
-                else ft.Colors.BLACK
-            )
-            self.app_state.add_shape(
-                Text(x=wx, y=wy, content="Hello World", stroke_color=color)
-            )
-            self.app_state.set_tool(
-                ToolType.SELECTION
-            )  # Switch back to selection after placing text
+            # Add text input field
+            self._add_text_input(wx, wy)
 
     def on_pan_update(self, e: ft.DragUpdateEvent):
         wx, wy = self.to_world(e.local_x, e.local_y)
@@ -1092,6 +1083,59 @@ class BlackboardCanvas(cv.Canvas):
             points.append((px, py))
 
         return points
+
+    def _add_text_input(self, wx, wy):
+        # Convert world to screen for UI placement (center of screen for dialog?)
+        # Or we can open a Dialog.
+        # Flet Dialogs are overlayed on the page.
+
+        def close_dlg(e):
+            self.app_state.current_tool = ToolType.SELECTION
+            self.app_state.notify()
+            e.page.close(dlg)
+
+        def add_text(e):
+            text = text_field.value
+            if text:
+                color = (
+                    ft.Colors.WHITE
+                    if self.app_state.theme_mode == "dark"
+                    else ft.Colors.BLACK
+                )
+                self.app_state.add_shape(
+                    Text(
+                        x=wx,
+                        y=wy,
+                        content=text,
+                        stroke_color=color,
+                        font_size=16.0,
+                    )
+                )
+            e.page.close(dlg)
+            self.app_state.set_tool(ToolType.SELECTION)
+
+        text_field = ft.TextField(
+            label="Enter text", autofocus=True, on_submit=add_text
+        )
+
+        dlg = ft.AlertDialog(
+            title=ft.Text("Add Text"),
+            content=text_field,
+            actions=[
+                ft.TextButton("Cancel", on_click=close_dlg),
+                ft.TextButton("OK", on_click=add_text),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            on_dismiss=lambda e: close_dlg(e)
+            if self.app_state.current_tool == ToolType.TEXT
+            else None,
+        )
+
+        # We need access to page to open dialog
+        # Since this is a Control, we have self.page if mounted.
+        if self.page:
+            self.page.open(dlg)
+            self.page.update()
 
     def update_active_interaction(self, wx, wy, prev_wx=None, prev_wy=None):
         if getattr(self, "_is_updating_interaction", False):

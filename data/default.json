@@ -1,8 +1,8 @@
 {
   "view": {
-    "pan_x": 294.6015679324373,
-    "pan_y": 376.6048853841886,
-    "zoom": 1.0406706091159608
+    "pan_x": 225.93868301713997,
+    "pan_y": 356.00332369123004,
+    "zoom": 1.0939346633108942
   },
   "shapes": [
     {
@@ -1867,6 +1867,18 @@
       "end_shape_id": "bad70baf-9d50-4988-9be2-f88b169785c7",
       "start_anchor_id": "right_center",
       "end_anchor_id": "left_center"
+    },
+    {
+      "id": "9ddfc932-3257-49dc-bcdb-5c258d01d460",
+      "type": "text",
+      "x": 303.1820163546664,
+      "y": -149.18927899887558,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "content": "Say something!",
+      "font_size": 16.0
     }
   ]
 }
