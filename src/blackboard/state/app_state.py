@@ -1,5 +1,5 @@
 from typing import List, Callable, Optional, TYPE_CHECKING, Tuple
-from ..models import Shape, ToolType, Line, Polygon, Group
+from ..models import Shape, ToolType, Line, Polygon, Group, Path
 from ..storage.storage_service import StorageService
 from ..storage.exporter import Exporter
 
@@ -267,6 +267,9 @@ class AppState:
             shape.end_x += dx
             shape.end_y += dy
         elif isinstance(shape, Polygon):
+            new_points = [(px + dx, py + dy) for px, py in shape.points]
+            shape.points = new_points
+        elif isinstance(shape, Path):
             new_points = [(px + dx, py + dy) for px, py in shape.points]
             shape.points = new_points
         elif isinstance(shape, Group):

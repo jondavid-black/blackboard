@@ -8,7 +8,7 @@ def test_shape_defaults():
     assert shape.x == 0.0
     assert shape.y == 0.0
     assert shape.stroke_color == ""
-    assert shape.stroke_width == 2.0
+    assert shape.stroke_width == 6.0
     assert shape.filled is False
 
     assert shape.fill_color == "transparent"

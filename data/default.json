@@ -1,39 +1,39 @@
 {
   "view": {
-    "pan_x": 674.8204347096874,
-    "pan_y": 412.3022445044146,
-    "zoom": 1.4611511582060084
+    "pan_x": 0.0,
+    "pan_y": 0.0,
+    "zoom": 1.0
   },
   "shapes": [
     {
       "id": "1",
       "type": "rectangle",
-      "x": -205.05779503166494,
-      "y": -138.72777184346285,
+      "x": 0,
+      "y": 0,
       "stroke_color": "",
-      "stroke_width": 2.0,
-      "filled": true,
-      "fill_color": "green",
+      "stroke_width": 6.0,
+      "filled": false,
+      "fill_color": "transparent",
       "stroke_dash_array": null,
       "opacity": 1.0,
       "stroke_join": "miter",
-      "width": 74.8943363437547,
-      "height": 55.102961548022826
+      "width": 10,
+      "height": 10
     },
     {
       "id": "2",
       "type": "rectangle",
-      "x": -167.27936280718907,
-      "y": -97.66425855598914,
+      "x": 10,
+      "y": 10,
       "stroke_color": "",
-      "stroke_width": 2.0,
-      "filled": true,
-      "fill_color": "blue",
+      "stroke_width": 6.0,
+      "filled": false,
+      "fill_color": "transparent",
       "stroke_dash_array": null,
       "opacity": 1.0,
       "stroke_join": "miter",
-      "width": 60.803741881770115,
-      "height": 27.872042834046663
+      "width": 10,
+      "height": 10
     },
     {
       "id": "4",
@@ -41,7 +41,7 @@
       "x": 30,
       "y": 30,
       "stroke_color": "",
-      "stroke_width": 2.0,
+      "stroke_width": 6.0,
       "filled": false,
       "fill_color": "transparent",
       "stroke_dash_array": null,
@@ -56,7 +56,7 @@
       "x": 20,
       "y": 20,
       "stroke_color": "",
-      "stroke_width": 2.0,
+      "stroke_width": 6.0,
       "filled": false,
       "fill_color": "transparent",
       "stroke_dash_array": null,

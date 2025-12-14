@@ -79,7 +79,7 @@ def test_eraser_path_splitting():
 
     # Create a horizontal line path: (0,50) -> (100,50)
     points = [(float(x), 50.0) for x in range(0, 101, 10)]  # 0, 10, 20... 100
-    path = Path(points=points, stroke_width=2)
+    path = Path(points=points, stroke_width=6)
     app_state.add_shape(path)
 
     app_state.set_tool(ToolType.ERASER)

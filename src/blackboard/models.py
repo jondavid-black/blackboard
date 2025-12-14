@@ -23,7 +23,7 @@ class Shape:
     x: float = 0.0
     y: float = 0.0
     stroke_color: str = ""  # Empty means use theme default
-    stroke_width: float = 2.0
+    stroke_width: float = 6.0
     filled: bool = False
     fill_color: str = "transparent"
     stroke_dash_array: List[float] | None = (
