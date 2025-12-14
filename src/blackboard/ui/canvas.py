@@ -312,6 +312,14 @@ class BlackboardCanvas(cv.Canvas):
             if hasattr(shape, "opacity") and shape.opacity < 1.0:
                 text_color = ft.Colors.with_opacity(shape.opacity, text_color)
 
+            weight = ft.FontWeight.NORMAL
+            if shape.font_weight == "bold":
+                weight = ft.FontWeight.BOLD
+
+            decoration = ft.TextDecoration.NONE
+            if shape.underline:
+                decoration = ft.TextDecoration.UNDERLINE
+
             canvas_shapes.append(
                 cv.Text(
                     sx,
@@ -320,6 +328,10 @@ class BlackboardCanvas(cv.Canvas):
                     style=ft.TextStyle(
                         size=shape.font_size * self.app_state.zoom,
                         color=text_color,
+                        weight=weight,
+                        italic=shape.italic,
+                        decoration=decoration,
+                        font_family=shape.font_family,
                     ),
                 )
             )

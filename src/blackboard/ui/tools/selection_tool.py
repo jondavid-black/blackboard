@@ -1,7 +1,7 @@
 import math
 import flet as ft
 from .base_tool import BaseTool
-from ...models import Line, Rectangle, Circle, Polygon, Group, Path
+from ...models import Line, Rectangle, Circle, Polygon, Group, Text
 
 
 class SelectionTool(BaseTool):
@@ -49,6 +49,25 @@ class SelectionTool(BaseTool):
 
         # 2. Hit test for selection
         hit_shape = self.canvas.hit_test(x, y)
+
+        # Check for double click on text
+        import time
+
+        current_time = time.time()
+        if (
+            hit_shape
+            and isinstance(hit_shape, Text)
+            and getattr(self, "_last_click_time", 0) > 0
+            and current_time - self._last_click_time < 0.5
+            and self.app_state.selected_shape_id == hit_shape.id
+        ):
+            # Double click detected on text
+            self._edit_text(hit_shape)
+            self._last_click_time = 0  # Reset
+            return
+
+        self._last_click_time = current_time
+
         if hit_shape:
             if self.app_state.is_shift_down:
                 # Toggle selection
@@ -487,63 +506,86 @@ class SelectionTool(BaseTool):
         self.app_state.update_shape(shape)
 
     def _scale_group_children(
-        self,
-        group,
-        scale_x,
-        scale_y,
-        old_origin_x,
-        old_origin_y,
-        new_origin_x,
-        new_origin_y,
+        self, group, scale_x, scale_y, origin_x, origin_y, new_origin_x, new_origin_y
     ):
-        # We need to move children to new origin + scaled offset
         for child in group.children:
-            if isinstance(child, Group):
-                # Recurse
+            # 1. Translate to origin (relative to old top-left)
+            rel_x = child.x - origin_x
+            rel_y = child.y - origin_y
+
+            # 2. Scale position and translate to new origin
+            child.x = new_origin_x + rel_x * scale_x
+            child.y = new_origin_y + rel_y * scale_y
+
+            # 3. Scale dimensions
+            if isinstance(child, Line):
+                rel_end_x = child.end_x - origin_x
+                rel_end_y = child.end_y - origin_y
+                child.end_x = new_origin_x + rel_end_x * scale_x
+                child.end_y = new_origin_y + rel_end_y * scale_y
+
+            elif isinstance(child, Rectangle):
+                child.width *= scale_x
+                child.height *= scale_y
+
+            elif isinstance(child, Circle):
+                child.radius_x *= scale_x
+                child.radius_y *= scale_y
+
+            elif isinstance(child, Polygon):
+                new_points = []
+                for px, py in child.points:
+                    dpx = px - origin_x
+                    dpy = py - origin_y
+                    new_points.append(
+                        (new_origin_x + dpx * scale_x, new_origin_y + dpy * scale_y)
+                    )
+                child.points = new_points
+
+            elif isinstance(child, Text):
+                # Scale font size by the average scale factor
+                avg_scale = (scale_x + scale_y) / 2
+                child.font_size *= avg_scale
+
+            elif isinstance(child, Group):
+                # Recursively scale children
                 self._scale_group_children(
                     child,
                     scale_x,
                     scale_y,
-                    old_origin_x,
-                    old_origin_y,
+                    origin_x,
+                    origin_y,
                     new_origin_x,
                     new_origin_y,
                 )
-                continue
 
-            # Calculate offset from old origin
-            rel_x = child.x - old_origin_x
-            rel_y = child.y - old_origin_y
+    def _edit_text(self, shape: Text):
+        def close_dlg(e):
+            e.page.close(dlg)
+            self.app_state.notify()
 
-            # New position
-            child.x = new_origin_x + (rel_x * scale_x)
-            child.y = new_origin_y + (rel_y * scale_y)
+        def update_text(e):
+            shape.content = text_field.value
+            self.app_state.update_shape(shape)
+            e.page.close(dlg)
 
-            # Scale dimensions
-            if isinstance(child, Rectangle):
-                child.width *= scale_x
-                child.height *= scale_y
-            elif isinstance(child, Circle):
-                child.radius_x *= scale_x
-                child.radius_y *= scale_y
-            elif isinstance(child, Line):
-                # End point also needs scaling relative to origin
-                rel_ex = child.end_x - old_origin_x
-                rel_ey = child.end_y - old_origin_y
-                child.end_x = new_origin_x + (rel_ex * scale_x)
-                child.end_y = new_origin_y + (rel_ey * scale_y)
-            elif isinstance(child, Polygon) or isinstance(
-                child, Path
-            ):  # Path too if it has points
-                if hasattr(child, "points") and child.points:
-                    new_points = []
-                    for px, py in child.points:
-                        rel_px = px - old_origin_x
-                        rel_py = py - old_origin_y
-                        new_points.append(
-                            (
-                                new_origin_x + rel_px * scale_x,
-                                new_origin_y + rel_py * scale_y,
-                            )
-                        )
-                    child.points = new_points
+        text_field = ft.TextField(
+            label="Edit text",
+            value=shape.content,
+            autofocus=True,
+            on_submit=update_text,
+        )
+
+        dlg = ft.AlertDialog(
+            title=ft.Text("Edit Text"),
+            content=text_field,
+            actions=[
+                ft.TextButton("Cancel", on_click=close_dlg),
+                ft.TextButton("OK", on_click=update_text),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        if self.canvas.page:
+            self.canvas.page.open(dlg)
+            self.canvas.page.update()

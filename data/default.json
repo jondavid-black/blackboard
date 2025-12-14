@@ -1,26 +1,11 @@
 {
   "view": {
-    "pan_x": 698.4312760269975,
-    "pan_y": 442.4597973645164,
+    "pan_x": 700.0312760269974,
+    "pan_y": 447.25979736451643,
     "zoom": 1.7318236238498355,
     "grid_type": "none"
   },
   "shapes": [
-    {
-      "id": "1",
-      "type": "rectangle",
-      "x": 0,
-      "y": 0,
-      "stroke_color": "",
-      "stroke_width": 6.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "stroke_dash_array": null,
-      "opacity": 1.0,
-      "stroke_join": "miter",
-      "width": 10,
-      "height": 10
-    },
     {
       "id": "2",
       "type": "rectangle",
@@ -41,6 +26,21 @@
       "type": "rectangle",
       "x": 30,
       "y": 30,
+      "stroke_color": "",
+      "stroke_width": 6.0,
+      "filled": false,
+      "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "stroke_join": "miter",
+      "width": 10,
+      "height": 10
+    },
+    {
+      "id": "1",
+      "type": "rectangle",
+      "x": 0,
+      "y": 0,
       "stroke_color": "",
       "stroke_width": 6.0,
       "filled": false,

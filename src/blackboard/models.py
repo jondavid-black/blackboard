@@ -113,6 +113,10 @@ class Text(Shape):
     type: str = "text"
     content: str = ""
     font_size: float = 16.0
+    font_weight: str = "normal"
+    italic: bool = False
+    underline: bool = False
+    font_family: str = "Roboto"
 
 
 @dataclass

@@ -173,7 +173,7 @@ class PropertiesDrawer(BaseDrawer):
         elif first_shape.stroke_dash_array == [5, 5]:
             current_style = "Dotted"
 
-        return [
+        controls = [
             ft.Text("Properties", size=20, weight=ft.FontWeight.BOLD),
             ft.Divider(),
             ft.Text(f"Selection: {len(selected_ids)} items"),
@@ -194,52 +194,139 @@ class PropertiesDrawer(BaseDrawer):
                     ),
                 ]
             ),
-            ft.Container(height=10),
-            ft.Text("Stroke Width"),
-            ft.Slider(
-                min=1,
-                max=20,
-                divisions=19,
-                value=first_shape.stroke_width,
-                label="{value}",
-                on_change=on_stroke_width_change,
-            ),
-            ft.Text("Opacity"),
-            ft.Slider(
-                min=0,
-                max=100,
-                divisions=100,
-                value=first_shape.opacity * 100,
-                label="{value}%",
-                on_change=on_opacity_change,
-            ),
-            ft.Text("Line Style"),
-            ft.Dropdown(
-                value=current_style,
-                options=[
-                    ft.dropdown.Option("Solid"),
-                    ft.dropdown.Option("Dashed"),
-                    ft.dropdown.Option("Dotted"),
-                ],
-                on_change=on_line_style_change,
-            ),
-            ft.Text("Stroke Color"),
-            stroke_swatches,
-            ft.Container(height=10),
-            ft.Text("Corner Style"),
-            ft.Dropdown(
-                value=getattr(first_shape, "stroke_join", "miter").capitalize(),
-                options=[
-                    ft.dropdown.Option("Miter"),
-                    ft.dropdown.Option("Round"),
-                    ft.dropdown.Option("Bevel"),
-                ],
-                on_change=on_stroke_join_change,
-            ),
-            ft.Container(height=10),
-            ft.Text("Fill Color"),
-            fill_swatches,
         ]
+
+        # Text Properties
+        if first_shape.type == "text":
+
+            def on_font_size_change(e):
+                self.app_state.update_selected_shapes_properties(
+                    font_size=float(e.control.value)
+                )
+
+            def on_font_weight_change(e):
+                is_bold = e.control.value
+                weight = "bold" if is_bold else "normal"
+                self.app_state.update_selected_shapes_properties(font_weight=weight)
+
+            def on_italic_change(e):
+                self.app_state.update_selected_shapes_properties(italic=e.control.value)
+
+            def on_underline_change(e):
+                self.app_state.update_selected_shapes_properties(
+                    underline=e.control.value
+                )
+
+            def on_font_family_change(e):
+                self.app_state.update_selected_shapes_properties(
+                    font_family=e.control.value
+                )
+
+            controls.extend(
+                [
+                    ft.Container(height=10),
+                    ft.Text("Text Properties", weight=ft.FontWeight.BOLD),
+                    ft.Text("Font Size"),
+                    ft.Slider(
+                        min=8,
+                        max=100,
+                        divisions=92,
+                        value=first_shape.font_size,
+                        label="{value}",
+                        on_change=on_font_size_change,
+                    ),
+                    ft.Row(
+                        [
+                            ft.Checkbox(
+                                label="Bold",
+                                value=first_shape.font_weight == "bold",
+                                on_change=on_font_weight_change,
+                            ),
+                            ft.Checkbox(
+                                label="Italic",
+                                value=first_shape.italic,
+                                on_change=on_italic_change,
+                            ),
+                            ft.Checkbox(
+                                label="Underline",
+                                value=first_shape.underline,
+                                on_change=on_underline_change,
+                            ),
+                        ]
+                    ),
+                    ft.Text("Font Family"),
+                    ft.Dropdown(
+                        value=getattr(first_shape, "font_family", "Roboto"),
+                        options=[
+                            ft.dropdown.Option("Roboto"),
+                            ft.dropdown.Option("Arial"),
+                            ft.dropdown.Option("Courier New"),
+                            ft.dropdown.Option("Times New Roman"),
+                            ft.dropdown.Option("Verdana"),
+                        ],
+                        on_change=on_font_family_change,
+                    ),
+                ]
+            )
+
+        controls.extend(
+            [
+                ft.Container(height=10),
+                ft.Text("Stroke Width"),
+                ft.Slider(
+                    min=1,
+                    max=20,
+                    divisions=19,
+                    value=first_shape.stroke_width,
+                    label="{value}",
+                    on_change=on_stroke_width_change,
+                ),
+                ft.Text("Opacity"),
+                ft.Slider(
+                    min=0,
+                    max=100,
+                    divisions=100,
+                    value=first_shape.opacity * 100,
+                    label="{value}%",
+                    on_change=on_opacity_change,
+                ),
+                ft.Text("Line Style"),
+                ft.Dropdown(
+                    value=current_style,
+                    options=[
+                        ft.dropdown.Option("Solid"),
+                        ft.dropdown.Option("Dashed"),
+                        ft.dropdown.Option("Dotted"),
+                    ],
+                    on_change=on_line_style_change,
+                ),
+                ft.Text("Color"),
+                stroke_swatches,
+                ft.Container(height=10),
+                ft.Text("Corner Style"),
+                ft.Dropdown(
+                    value=getattr(first_shape, "stroke_join", "miter").capitalize(),
+                    options=[
+                        ft.dropdown.Option("Miter"),
+                        ft.dropdown.Option("Round"),
+                        ft.dropdown.Option("Bevel"),
+                    ],
+                    on_change=on_stroke_join_change,
+                ),
+            ]
+        )
+
+        # Hide Fill for Text
+        if first_shape.type != "text":
+            controls.extend(
+                [
+                    ft.Container(height=10),
+                    ft.Text("Fill Color"),
+                    fill_swatches,
+                ]
+            )
+
+        return controls
 
     def build(self) -> list[ft.Control]:
         return self._get_properties_content()
