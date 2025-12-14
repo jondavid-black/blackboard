@@ -1,21 +1,23 @@
 {
   "view": {
-    "pan_x": 624.0460690393284,
-    "pan_y": 473.04345466746,
-    "zoom": 1.1619306726826792
+    "pan_x": 876.1891213000472,
+    "pan_y": 423.5548476534344,
+    "zoom": 1.061443709875898
   },
   "shapes": [
     {
       "id": "c9a14795-9345-4a22-a0ae-28e1a1a41bc2",
       "type": "line",
-      "x": -295.72046189276034,
-      "y": 50.731368744490666,
+      "x": -290.44462865931007,
+      "y": 22.844821653396522,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": -224.52046189276038,
-      "end_y": 293.1313687444905,
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "end_x": -403.1451013681478,
+      "end_y": 148.422800055569,
       "line_type": "connector",
       "start_shape_id": null,
       "end_shape_id": null,
@@ -25,14 +27,16 @@
     {
       "id": "f6ce3f9d-6310-43bd-8872-4917b4dfb172",
       "type": "line",
-      "x": -224.52046189276032,
-      "y": 289.93136874449056,
+      "x": -403.1451013681478,
+      "y": 145.22280005556908,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": 376.2795381072391,
-      "end_y": 430.73136874449085,
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "end_x": 202.93073186530188,
+      "end_y": 258.1362529644749,
       "line_type": "connector",
       "start_shape_id": "c9a14795-9345-4a22-a0ae-28e1a1a41bc2",
       "end_shape_id": null,
@@ -42,14 +46,16 @@
     {
       "id": "a781dc40-5988-4dc7-9266-772e79e107b7",
       "type": "line",
-      "x": 376.2795381072391,
-      "y": 430.73136874449085,
+      "x": 202.93073186530188,
+      "y": 258.1362529644749,
       "stroke_color": "white",
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
-      "end_x": -295.72046189276034,
-      "end_y": 50.731368744490666,
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "end_x": -290.44462865931007,
+      "end_y": 22.844821653396522,
       "line_type": "connector",
       "start_shape_id": "f6ce3f9d-6310-43bd-8872-4917b4dfb172",
       "end_shape_id": "c9a14795-9345-4a22-a0ae-28e1a1a41bc2",
@@ -65,6 +71,8 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "end_x": 623.9999999999995,
       "end_y": 125.60000000000002,
       "line_type": "connector",
@@ -82,6 +90,8 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "end_x": 888.0000000000005,
       "end_y": -140.80000000000004,
       "line_type": "connector",
@@ -99,6 +109,8 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "end_x": 681.5999999999998,
       "end_y": -62.400000000000006,
       "line_type": "connector",
@@ -116,6 +128,8 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "end_x": 475.2,
       "end_y": -67.20000000000005,
       "line_type": "connector",
@@ -133,6 +147,8 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "end_x": 621.6,
       "end_y": 124.79999999999995,
       "line_type": "connector",
@@ -142,87 +158,95 @@
       "end_anchor_id": "end"
     },
     {
-      "id": "a63182b3-4cc7-4dc7-9ef2-a9046bd1cb08",
-      "type": "rectangle",
-      "x": 293.22709094018694,
-      "y": -192.18166459925112,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "width": 42.39999999999998,
-      "height": 124.0
-    },
-    {
-      "id": "498ba2ad-23e4-42c4-a3c5-dd96637a0cf9",
-      "type": "circle",
-      "x": -266.50397121029135,
-      "y": -122.0736990363819,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
-      "radius_x": 95.19999999999999,
-      "radius_y": 36.0
-    },
-    {
       "id": "23afd4b6-83b9-4be4-875d-18d19446edd6",
       "type": "polygon",
-      "x": 59.531970229188985,
-      "y": 71.28913700438594,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
+      "x": 64.35153488279326,
+      "y": -118.73941219486571,
+      "stroke_color": "red",
+      "stroke_width": 3.0,
+      "filled": true,
+      "fill_color": "green",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "points": [
         [
-          59.531970229188985,
-          -3.110862995614042
+          64.35153488279326,
+          -193.13941219486577
         ],
         [
-          109.13197022918898,
-          71.28913700438594
+          113.95153488279325,
+          -118.73941219486571
         ],
         [
-          59.531970229188985,
-          145.68913700438603
+          64.35153488279326,
+          -44.33941219486564
         ],
         [
-          9.931970229188927,
-          71.28913700438596
+          14.751534882793173,
+          -118.73941219486568
         ]
       ],
       "polygon_type": "diamond"
     },
     {
-      "id": "3309728f-4127-4251-adac-0d132885830c",
-      "type": "polygon",
-      "x": 331.1332939273799,
-      "y": 169.16374612843975,
+      "id": "498ba2ad-23e4-42c4-a3c5-dd96637a0cf9",
+      "type": "circle",
+      "x": -139.03225098819044,
+      "y": -126.28199445999498,
       "stroke_color": "white",
       "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
+      "filled": true,
+      "fill_color": "blue",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
+      "radius_x": 95.19999999999999,
+      "radius_y": 36.0
+    },
+    {
+      "id": "a63182b3-4cc7-4dc7-9ef2-a9046bd1cb08",
+      "type": "rectangle",
+      "x": -107.55867850380389,
+      "y": -210.85302066897145,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": true,
+      "fill_color": "yellow",
+      "stroke_dash_array": null,
+      "opacity": 0.5,
+      "width": 42.39999999999998,
+      "height": 124.0
+    },
+    {
+      "id": "3309728f-4127-4251-adac-0d132885830c",
+      "type": "polygon",
+      "x": 226.42223455645498,
+      "y": 104.46799548398917,
+      "stroke_color": "white",
+      "stroke_width": 2.0,
+      "filled": true,
+      "fill_color": "green",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "points": [
         [
-          331.1332939273799,
-          123.72213653731441
+          384.8274419759212,
+          104.46799548398917
         ],
         [
-          367.1479096878633,
-          155.1215165130304
+          543.2326493953874,
+          208.66703204964475
         ],
         [
-          353.3915505591263,
-          205.92678053941174
+          482.7272441561285,
+          377.2646148078685
         ],
         [
-          308.8750372956335,
-          205.92678053941174
+          286.9276397957137,
+          377.2646148078685
         ],
         [
-          295.1186781668965,
-          155.12151651303043
+          226.42223455645498,
+          208.6670320496448
         ]
       ],
       "polygon_type": "pentagon"
@@ -230,36 +254,38 @@
     {
       "id": "6b375a6c-9f55-435b-a075-08f04304b119",
       "type": "polygon",
-      "x": 396.5416713691511,
-      "y": -180.5989458759798,
-      "stroke_color": "white",
-      "stroke_width": 2.0,
-      "filled": false,
-      "fill_color": "transparent",
+      "x": 180.51199185220395,
+      "y": -209.86635748715796,
+      "stroke_color": "green",
+      "stroke_width": 4.0,
+      "filled": true,
+      "fill_color": "red",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "points": [
         [
-          396.5416713691511,
-          -228.10608317579272
+          292.15595289605983,
+          -209.86635748715796
         ],
         [
-          433.51019370666154,
-          -204.35251452588625
+          403.7999139399158,
+          -147.12010091764475
         ],
         [
-          433.51019370666154,
-          -156.84537722607337
+          403.7999139399158,
+          -21.62758777861838
         ],
         [
-          396.5416713691511,
-          -133.0918085761669
+          292.15595289605983,
+          41.1186687908949
         ],
         [
-          359.57314903164075,
-          -156.84537722607334
+          180.51199185220395,
+          -21.627587778618267
         ],
         [
-          359.57314903164075,
-          -204.35251452588622
+          180.51199185220395,
+          -147.12010091764475
         ]
       ],
       "polygon_type": "hexagon"
@@ -273,6 +299,8 @@
       "stroke_width": 2.0,
       "filled": false,
       "fill_color": "transparent",
+      "stroke_dash_array": null,
+      "opacity": 1.0,
       "content": "Good morning!",
       "font_size": 16.0
     }

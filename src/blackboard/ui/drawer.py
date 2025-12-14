@@ -350,6 +350,233 @@ class Drawer(ft.Container):
         self.app_state.switch_file(path)
         # switch_file triggers notify -> render, but we updated local state too
 
+    def _get_layers_content(self):
+        shapes = list(
+            reversed(self.app_state.shapes)
+        )  # Reverse to show top layers first
+        if not shapes:
+            return [
+                ft.Container(
+                    content=ft.Text("No items on canvas", color=ft.Colors.GREY),
+                    padding=10,
+                )
+            ]
+
+        layer_controls = []
+        for shape in shapes:
+            is_selected = shape.id in self.app_state.selected_shape_ids
+            # Determine icon based on shape type
+            icon = ft.Icons.CHECK_BOX_OUTLINE_BLANK
+            if shape.type == "line":
+                icon = ft.Icons.SHOW_CHART
+            elif shape.type == "text":
+                icon = ft.Icons.TEXT_FIELDS
+            elif shape.type == "circle":
+                icon = ft.Icons.CIRCLE_OUTLINED
+            elif shape.type == "rectangle":
+                icon = ft.Icons.RECTANGLE_OUTLINED
+            elif shape.type == "polygon":
+                icon = ft.Icons.POLYLINE
+            elif shape.type == "path":
+                icon = ft.Icons.GESTURE
+
+            layer_controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            ft.Icon(
+                                icon,
+                                size=16,
+                                color=ft.Colors.PRIMARY if is_selected else None,
+                            ),
+                            ft.Text(
+                                f"{shape.type.capitalize()} ({shape.id[:4]})",
+                                size=13,
+                                weight=ft.FontWeight.BOLD
+                                if is_selected
+                                else ft.FontWeight.NORMAL,
+                                expand=True,
+                            ),
+                            ft.IconButton(
+                                ft.Icons.ARROW_UPWARD,
+                                icon_size=14,
+                                tooltip="Move Forward",
+                                on_click=lambda _,
+                                s=shape.id: self.app_state.move_shape_forward(s),
+                            ),
+                            ft.IconButton(
+                                ft.Icons.ARROW_DOWNWARD,
+                                icon_size=14,
+                                tooltip="Move Backward",
+                                on_click=lambda _,
+                                s=shape.id: self.app_state.move_shape_backward(s),
+                            ),
+                        ],
+                        spacing=5,
+                    ),
+                    padding=ft.padding.symmetric(vertical=5, horizontal=10),
+                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST
+                    if is_selected
+                    else None,
+                    border_radius=4,
+                    ink=True,
+                    on_click=lambda _, s=shape.id: self.app_state.select_shape(s),
+                )
+            )
+
+        return [
+            ft.Text("Layers", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Column(controls=layer_controls, scroll=ft.ScrollMode.AUTO, expand=True),
+        ]
+
+    def _get_properties_content(self):
+        selected_ids = self.app_state.selected_shape_ids
+        if not selected_ids:
+            return [
+                ft.Text("Properties", size=20, weight=ft.FontWeight.BOLD),
+                ft.Divider(),
+                ft.Text("No selection", italic=True),
+            ]
+
+        # Get first selected shape as representative for initial values
+        first_shape = None
+        for s in self.app_state.shapes:
+            if s.id in list(selected_ids)[0]:
+                first_shape = s
+                break
+
+        if not first_shape:
+            return [
+                ft.Text("Properties", size=20, weight=ft.FontWeight.BOLD),
+                ft.Divider(),
+                ft.Text("Selection error", italic=True),
+            ]
+
+        def on_stroke_width_change(e):
+            self.app_state.update_selected_shapes_properties(
+                stroke_width=float(e.control.value)
+            )
+
+        def on_opacity_change(e):
+            self.app_state.update_selected_shapes_properties(
+                opacity=float(e.control.value) / 100
+            )
+
+        def on_stroke_color_change(e):
+            self.app_state.update_selected_shapes_properties(
+                stroke_color=e.control.content.bgcolor
+            )
+
+        def on_fill_color_change(e):
+            color = e.control.content.bgcolor
+            filled = color != "transparent"
+            self.app_state.update_selected_shapes_properties(
+                fill_color=color, filled=filled
+            )
+
+        def on_line_style_change(e):
+            style = e.control.value
+            dash_array = None
+            if style == "Dashed":
+                dash_array = [10, 10]
+            elif style == "Dotted":
+                dash_array = [5, 5]
+            self.app_state.update_selected_shapes_properties(
+                stroke_dash_array=dash_array
+            )
+
+        # Helper to create color swatch
+        def create_color_swatch(color, current_color, on_click):
+            is_selected = current_color == color
+            return ft.Container(
+                width=24,
+                height=24,
+                bgcolor=color if color != "transparent" else None,
+                border=ft.border.all(
+                    2, ft.Colors.BLUE if is_selected else ft.Colors.OUTLINE
+                )
+                if color == "transparent"
+                else None,
+                border_radius=12,
+                content=ft.Container(bgcolor=color)
+                if color != "transparent"
+                else ft.Icon(ft.Icons.BLOCK, size=16),
+                on_click=on_click,
+                ink=True,
+            )
+
+        colors = [
+            ft.Colors.BLACK,
+            ft.Colors.WHITE,
+            ft.Colors.RED,
+            ft.Colors.GREEN,
+            ft.Colors.BLUE,
+            ft.Colors.YELLOW,
+            ft.Colors.PURPLE,
+            "transparent",
+        ]
+
+        # Stroke Color Swatches
+        stroke_swatches = ft.Row(wrap=True, spacing=5)
+        for c in colors[:-1]:  # No transparent stroke usually
+            stroke_swatches.controls.append(
+                create_color_swatch(c, first_shape.stroke_color, on_stroke_color_change)
+            )
+
+        # Fill Color Swatches
+        fill_swatches = ft.Row(wrap=True, spacing=5)
+        for c in colors:
+            fill_swatches.controls.append(
+                create_color_swatch(c, first_shape.fill_color, on_fill_color_change)
+            )
+
+        current_style = "Solid"
+        if first_shape.stroke_dash_array == [10, 10]:
+            current_style = "Dashed"
+        elif first_shape.stroke_dash_array == [5, 5]:
+            current_style = "Dotted"
+
+        return [
+            ft.Text("Properties", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Text(f"Selection: {len(selected_ids)} items"),
+            ft.Container(height=10),
+            ft.Text("Stroke Width"),
+            ft.Slider(
+                min=1,
+                max=20,
+                divisions=19,
+                value=first_shape.stroke_width,
+                label="{value}",
+                on_change=on_stroke_width_change,
+            ),
+            ft.Text("Opacity"),
+            ft.Slider(
+                min=0,
+                max=100,
+                divisions=100,
+                value=first_shape.opacity * 100,
+                label="{value}%",
+                on_change=on_opacity_change,
+            ),
+            ft.Text("Line Style"),
+            ft.Dropdown(
+                value=current_style,
+                options=[
+                    ft.dropdown.Option("Solid"),
+                    ft.dropdown.Option("Dashed"),
+                    ft.dropdown.Option("Dotted"),
+                ],
+                on_change=on_line_style_change,
+            ),
+            ft.Text("Stroke Color"),
+            stroke_swatches,
+            ft.Container(height=10),
+            ft.Text("Fill Color"),
+            fill_swatches,
+        ]
+
     def _render_content(self):
         tab = self.app_state.active_drawer_tab
 
@@ -361,14 +588,6 @@ class Drawer(ft.Container):
                 ft.Slider(min=1, max=10, divisions=9, label="{value}"),
                 ft.Text("Opacity"),
                 ft.Slider(min=0, max=100, divisions=100, label="{value}%"),
-            ],
-            "properties": [
-                ft.Text("Properties", size=20, weight=ft.FontWeight.BOLD),
-                ft.Divider(),
-                ft.Text("Selection: None", italic=True),
-                ft.Container(height=20),
-                ft.Text("Canvas Info"),
-                ft.Text(f"Zoom: {int(self.app_state.zoom * 100)}%"),
             ],
             "profile": [
                 ft.Text("User Profile", size=20, weight=ft.FontWeight.BOLD),
@@ -389,6 +608,12 @@ class Drawer(ft.Container):
             current_content = self._get_files_content()
             # Special case for files: remove padding from parent container to allow full bleed
             self.padding = 0
+        elif tab == "layers":
+            current_content = self._get_layers_content()
+            self.padding = 10
+        elif tab == "properties":
+            current_content = self._get_properties_content()
+            self.padding = 10
         else:
             current_content = content_map.get(tab, [])
             # Restore padding for other tabs

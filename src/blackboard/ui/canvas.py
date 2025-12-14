@@ -127,7 +127,27 @@ class BlackboardCanvas(cv.Canvas):
                 color=final_color,
                 stroke_width=shape.stroke_width,
                 style=ft.PaintingStyle.STROKE,
+                stroke_dash_pattern=shape.stroke_dash_array,
             )
+            # Apply opacity to color if needed (Flet Paint doesn't have direct opacity, controlled via color alpha)
+            # But we can try setting opacity on the cv.Canvas Shape or just modify the color here.
+            # ft.Colors are strings or hex.
+            # Let's rely on shape.opacity property if we add it, but for now user asked for opacity configuration.
+            # We added 'opacity' to Shape model.
+
+            # Since Flet colors are strings, handling alpha manually is tricky without a helper.
+            # However, cv shapes often have an opacity property? No, they use Paint.
+            # Paint has color. We might need to mix opacity into the color.
+            # For simplicity in this iteration, let's assume 'opacity' affects the whole shape layer
+            # OR we implement it by modulating the color alpha.
+            # Flet's cv.Canvas doesn't seem to have a global 'opacity' per shape.
+            # We will rely on the Paint's color having alpha.
+
+            # Actually, let's use the 'with_opacity' helper if available or string manipulation.
+            # ft.colors.with_opacity(opacity, color)
+
+            if hasattr(shape, "opacity") and shape.opacity < 1.0:
+                paint.color = ft.Colors.with_opacity(shape.opacity, final_color)
 
             # Highlight selected
             if (
@@ -138,6 +158,8 @@ class BlackboardCanvas(cv.Canvas):
                 if self.app_state.is_shift_down:
                     paint.color = ft.Colors.CYAN
                 paint.stroke_width = shape.stroke_width + 2
+                # Selection highlight ignores dash array for visibility
+                paint.stroke_dash_pattern = None
 
             self._draw_shape(canvas_shapes, shape, paint, final_color)
 
@@ -150,6 +172,15 @@ class BlackboardCanvas(cv.Canvas):
         self.update()
 
     def _draw_shape(self, canvas_shapes, shape, paint, final_color):
+        # Handle Fill
+        fill_paint = None
+        if shape.filled and shape.fill_color:
+            fill_color = shape.fill_color
+            if hasattr(shape, "opacity") and shape.opacity < 1.0:
+                fill_color = ft.Colors.with_opacity(shape.opacity, fill_color)
+
+            fill_paint = ft.Paint(color=fill_color, style=ft.PaintingStyle.FILL)
+
         if isinstance(shape, Line):
             sx1, sy1 = self.to_screen(shape.x, shape.y)
             sx2, sy2 = self.to_screen(shape.end_x, shape.end_y)
@@ -171,16 +202,24 @@ class BlackboardCanvas(cv.Canvas):
             sx, sy = self.to_screen(shape.x, shape.y)
             w = shape.width * self.app_state.zoom
             h = shape.height * self.app_state.zoom
+            if fill_paint:
+                canvas_shapes.append(cv.Rect(sx, sy, w, h, paint=fill_paint))
             canvas_shapes.append(cv.Rect(sx, sy, w, h, paint=paint))
 
         elif isinstance(shape, Circle):
             sx, sy = self.to_screen(shape.x, shape.y)
             w = shape.radius_x * 2 * self.app_state.zoom
             h = shape.radius_y * 2 * self.app_state.zoom
+            if fill_paint:
+                canvas_shapes.append(cv.Oval(sx, sy, w, h, paint=fill_paint))
             canvas_shapes.append(cv.Oval(sx, sy, w, h, paint=paint))
 
         elif isinstance(shape, Text):
             sx, sy = self.to_screen(shape.x, shape.y)
+            text_color = final_color
+            if hasattr(shape, "opacity") and shape.opacity < 1.0:
+                text_color = ft.Colors.with_opacity(shape.opacity, text_color)
+
             canvas_shapes.append(
                 cv.Text(
                     sx,
@@ -188,7 +227,7 @@ class BlackboardCanvas(cv.Canvas):
                     shape.content,
                     style=ft.TextStyle(
                         size=shape.font_size * self.app_state.zoom,
-                        color=final_color,
+                        color=text_color,
                     ),
                 )
             )
@@ -211,16 +250,30 @@ class BlackboardCanvas(cv.Canvas):
         elif isinstance(shape, Polygon):
             if not shape.points:
                 return
-            points = [
-                ft.Offset(x, y)
-                for x, y in [self.to_screen(px, py) for px, py in shape.points]
-            ]
-            if len(points) > 2:
-                points.append(points[0])  # Close loop
+
+            screen_points = [self.to_screen(px, py) for px, py in shape.points]
+            if not screen_points:
+                return
+
+            path_elements = []
+            path_elements.append(
+                cv.Path.MoveTo(screen_points[0][0], screen_points[0][1])
+            )
+            for x, y in screen_points[1:]:
+                path_elements.append(cv.Path.LineTo(x, y))
+            path_elements.append(cv.Path.Close())
+
+            if fill_paint:
+                canvas_shapes.append(
+                    cv.Path(
+                        elements=path_elements,
+                        paint=fill_paint,
+                    )
+                )
+
             canvas_shapes.append(
-                cv.Points(
-                    points=points,  # type: ignore
-                    point_mode=cv.PointMode.POLYGON,
+                cv.Path(
+                    elements=path_elements,
                     paint=paint,
                 )
             )

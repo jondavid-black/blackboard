@@ -27,6 +27,10 @@ class Shape:
     stroke_width: float = 2.0
     filled: bool = False
     fill_color: str = "transparent"
+    stroke_dash_array: List[float] | None = (
+        None  # None for solid, list for dash pattern
+    )
+    opacity: float = 1.0
 
     def get_anchors(self) -> List[Tuple[str, float, float]]:
         """Returns a list of (anchor_id, x, y) tuples."""

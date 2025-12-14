@@ -153,3 +153,42 @@ def test_create_file_without_extension():
     # Should automatically add extension
     assert state.get_current_filename() == "project_alpha.json"
     assert "project_alpha.json" in state.list_files()
+
+
+def test_move_shape_forward_backward():
+    storage = MockStorageService()
+    state = AppState(storage_service=storage)
+
+    shape1 = Line()
+    shape2 = Line()
+    shape3 = Line()
+
+    state.add_shape(shape1)
+    state.add_shape(shape2)
+    state.add_shape(shape3)
+
+    assert state.shapes == [shape1, shape2, shape3]
+
+    # Move shape1 forward (up)
+    state.move_shape_forward(shape1.id)
+    assert state.shapes == [shape2, shape1, shape3]
+
+    # Move shape1 forward again
+    state.move_shape_forward(shape1.id)
+    assert state.shapes == [shape2, shape3, shape1]
+
+    # Move shape1 forward again (should do nothing as it's at the top)
+    state.move_shape_forward(shape1.id)
+    assert state.shapes == [shape2, shape3, shape1]
+
+    # Move shape1 backward (down)
+    state.move_shape_backward(shape1.id)
+    assert state.shapes == [shape2, shape1, shape3]
+
+    # Move shape1 backward again
+    state.move_shape_backward(shape1.id)
+    assert state.shapes == [shape1, shape2, shape3]
+
+    # Move shape1 backward again (should do nothing as it's at the bottom)
+    state.move_shape_backward(shape1.id)
+    assert state.shapes == [shape1, shape2, shape3]

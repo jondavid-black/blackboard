@@ -343,6 +343,52 @@ class AppState:
             self.active_drawer_tab = tab_index
         self.notify()
 
+    def update_selected_shapes_properties(self, **properties):
+        """
+        Updates properties for all selected shapes.
+        """
+        if not self.selected_shape_ids:
+            return
+
+        updated = False
+        for shape in self.shapes:
+            if shape.id in self.selected_shape_ids:
+                for key, value in properties.items():
+                    if hasattr(shape, key):
+                        setattr(shape, key, value)
+                        updated = True
+
+        if updated:
+            self.notify(save=True)
+
+    def move_shape_forward(self, shape_id: str):
+        idx = -1
+        for i, s in enumerate(self.shapes):
+            if s.id == shape_id:
+                idx = i
+                break
+
+        if idx != -1 and idx < len(self.shapes) - 1:
+            self.shapes[idx], self.shapes[idx + 1] = (
+                self.shapes[idx + 1],
+                self.shapes[idx],
+            )
+            self.notify(save=True)
+
+    def move_shape_backward(self, shape_id: str):
+        idx = -1
+        for i, s in enumerate(self.shapes):
+            if s.id == shape_id:
+                idx = i
+                break
+
+        if idx > 0:
+            self.shapes[idx], self.shapes[idx - 1] = (
+                self.shapes[idx - 1],
+                self.shapes[idx],
+            )
+            self.notify(save=True)
+
     def close_drawer(self):
         self.active_drawer_tab = None
         self.notify()

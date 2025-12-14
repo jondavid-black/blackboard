@@ -21,6 +21,11 @@ class SideRail(ft.Container):
                     # We rely on the label being exposed to accessibility tools.
                 ),
                 ft.NavigationRailDestination(
+                    icon=ft.Icons.LAYERS_OUTLINED,
+                    selected_icon=ft.Icons.LAYERS,
+                    label="Layers",
+                ),
+                ft.NavigationRailDestination(
                     icon=ft.Icons.TUNE, selected_icon=ft.Icons.TUNE, label="Tools"
                 ),
                 ft.NavigationRailDestination(
@@ -87,7 +92,7 @@ class SideRail(ft.Container):
 
     def _update_selection(self):
         # Map state string indices to integer indices for NavigationRail
-        tab_map = {"files": 0, "tools": 1, "properties": 2}
+        tab_map = {"files": 0, "layers": 1, "tools": 2, "properties": 3}
 
         if self.app_state.active_drawer_tab in tab_map:
             self.nav_rail.selected_index = tab_map[self.app_state.active_drawer_tab]
@@ -96,7 +101,7 @@ class SideRail(ft.Container):
 
     def _on_nav_change(self, e):
         # Map integer indices back to state strings
-        index_map = {0: "files", 1: "tools", 2: "properties"}
+        index_map = {0: "files", 1: "layers", 2: "tools", 3: "properties"}
 
         if e.control.selected_index in index_map:
             key = index_map[e.control.selected_index]
