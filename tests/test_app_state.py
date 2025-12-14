@@ -16,7 +16,7 @@ def test_initial_state():
     state = AppState(storage_service=storage)
     assert state.shapes == []
     assert state.selected_shape_id is None
-    assert state.current_tool == ToolType.HAND
+    assert state.current_tool == ToolType.SELECTION
     assert state.pan_x == 0.0
     assert state.pan_y == 0.0
     assert state.zoom == 1.0
@@ -76,12 +76,11 @@ def test_tool_change_clears_selection():
     state.set_tool(ToolType.RECTANGLE)
     assert state.selected_shape_id is None
 
-    # Switching to HAND should NOT clear selection (based on implementation logic check)
-    # Let's check implementation:
-    # if tool != ToolType.SELECTION and tool != ToolType.HAND: self.selected_shape_id = None
+    # Switching to BOX_SELECTION should NOT clear selection
+    # if tool != ToolType.SELECTION and tool != ToolType.BOX_SELECTION: self.selected_shape_id = None
 
     state.select_shape(line.id)
-    state.set_tool(ToolType.HAND)
+    state.set_tool(ToolType.BOX_SELECTION)
     assert state.selected_shape_id == line.id
 
     state.set_tool(ToolType.SELECTION)

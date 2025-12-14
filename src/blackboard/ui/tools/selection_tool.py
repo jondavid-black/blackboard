@@ -1,7 +1,7 @@
 import math
 import flet as ft
 from .base_tool import BaseTool
-from ...models import Line, Rectangle, Circle, Polygon, Group
+from ...models import Line, Rectangle, Circle, Polygon, Group, Path
 
 
 class SelectionTool(BaseTool):
@@ -82,9 +82,7 @@ class SelectionTool(BaseTool):
 
             # Fallback to pan if background clicked
             # We initiate pan logic here locally or delegate?
-            # Canvas has special handling for HandTool, but here we might want ad-hoc pan
             # or just do nothing. Legacy code allowed pan.
-            # We'll use the HandTool logic logic temporarily or set a flag?
             # Actually, standard UX: Drag on background -> Box Select.
             # But the legacy code (line 950) says "Fallback to pan".
             # Let's implement ad-hoc pan for now to match legacy.
@@ -142,7 +140,8 @@ class SelectionTool(BaseTool):
     def on_up(self, x: float, y: float, e):
         self.resize_handle = None
         self.resizing_shape = None
-        self._is_panning = False
+        if hasattr(self, "_is_panning"):
+            self._is_panning = False
         self.moving_shapes_initial_state = {}
         # Final save after drag/resize
         self.app_state.notify(save=True)

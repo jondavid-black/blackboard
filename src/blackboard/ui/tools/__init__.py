@@ -7,5 +7,4 @@ from .pen_tool import PenTool as PenTool
 from .text_tool import TextTool as TextTool
 from .eraser_tool import EraserTool as EraserTool
 from .selection_tool import SelectionTool as SelectionTool
-from .hand_tool import HandTool as HandTool
 from .box_selection_tool import BoxSelectionTool as BoxSelectionTool

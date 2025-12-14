@@ -52,8 +52,8 @@ class Toolbar(ft.Container):
     def _render_content(self):
         self.content = ft.Row(
             controls=[
-                self._build_tool_button(ToolType.HAND, ft.Icons.PAN_TOOL),
-                self._build_tool_button(ToolType.SELECTION, ft.Icons.SELECT_ALL),
+                self._build_tool_button(ToolType.SELECTION, ft.Icons.ADS_CLICK),
+                self._build_tool_button(ToolType.BOX_SELECTION, ft.Icons.SELECT_ALL),
                 self._build_tool_button(ToolType.PEN, ft.Icons.EDIT),
                 self._build_tool_button(ToolType.ERASER, ft.Icons.AUTO_FIX_NORMAL),
                 self._build_tool_button(ToolType.LINE, ft.Icons.SHOW_CHART),
@@ -115,34 +115,6 @@ class Toolbar(ft.Container):
         is_dark = self.app_state.theme_mode == "dark"
         icon_color_default = ft.Colors.WHITE if is_dark else ft.Colors.BLACK
         bg_color_selected = ft.Colors.BLUE_900 if is_dark else ft.Colors.BLUE_50
-
-        if tool_type == ToolType.SELECTION:
-            return ft.PopupMenuButton(
-                icon=icon,
-                icon_color=ft.Colors.BLUE
-                if self.app_state.current_tool == ToolType.SELECTION
-                or self.app_state.current_tool == ToolType.BOX_SELECTION
-                else icon_color_default,
-                bgcolor=bg_color_selected
-                if self.app_state.current_tool == ToolType.SELECTION
-                or self.app_state.current_tool == ToolType.BOX_SELECTION
-                else None,
-                tooltip="Selection",
-                items=[
-                    ft.PopupMenuItem(
-                        text="Object Selection",
-                        on_click=lambda _: self.app_state.set_tool(ToolType.SELECTION),
-                        icon=ft.Icons.SELECT_ALL,
-                    ),
-                    ft.PopupMenuItem(
-                        text="Multi-select",
-                        on_click=lambda _: self.app_state.set_tool(
-                            ToolType.BOX_SELECTION
-                        ),
-                        icon=ft.Icons.GRID_ON,  # Assuming a grid icon for multi/box selection
-                    ),
-                ],
-            )
 
         if tool_type == ToolType.LINE:
             return ft.PopupMenuButton(

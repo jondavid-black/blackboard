@@ -10,19 +10,21 @@ def test_toolbar_initialization():
 
     assert isinstance(toolbar, ft.Container)
     assert isinstance(toolbar.content, ft.Row)
-    # Hand, Selection, Pen, Eraser, Line, Rect, Circle, Polygon, Text = 9 buttons + divider + zoom out + zoom text + zoom in = 13 controls
-    assert len(toolbar.content.controls) == 13
+    # Selection, Box Selection, Pen, Eraser, Line, Rect, Circle, Polygon, Text = 9 buttons
+    # + Divider, Undo, Redo, Divider, Zoom Out, Text, Zoom In = 7 controls
+    # Total = 16 controls
+    assert len(toolbar.content.controls) == 16
 
 
 def test_toolbar_button_click():
     app_state = AppState()
     toolbar = Toolbar(app_state)
 
-    # The controls are in order: HAND, SELECTION, PEN, ERASER, LINE, RECTANGLE, CIRCLE, TEXT
+    # The controls are in order: SELECTION, BOX_SELECTION, PEN, ERASER, LINE, RECTANGLE, CIRCLE, TEXT
     row = toolbar.content
     assert isinstance(row, ft.Row), f"Toolbar content is not a Row, got {type(row)}"
     assert row.controls is not None, "Toolbar Row does not have 'controls' attribute"
-    rect_btn = row.controls[5]  # Rectangle (was 4, now 5 because of Eraser)
+    rect_btn = row.controls[5]  # Rectangle (index 5)
 
     # Simulate click
     # For Flet Button, the event handler is usually 'on_click'
@@ -62,22 +64,22 @@ def test_toolbar_updates_ui_on_state_change():
     # Manually call did_mount to attach listener since we aren't running in a full Flet app
     toolbar.did_mount()
 
-    # Initial state HAND
+    # Initial state SELECTION
     assert isinstance(toolbar.content, ft.Row), (
         f"Toolbar content is not a Row, got {type(toolbar.content)}"
     )
     assert toolbar.content.controls is not None, (
         "Toolbar Row does not have 'controls' attribute"
     )
-    hand_btn = toolbar.content.controls[0]
+    selection_btn = toolbar.content.controls[0]
     # Check if the button has 'icon_color' or 'color' attribute before asserting
-    if hasattr(hand_btn, "icon_color"):
-        assert getattr(hand_btn, "icon_color") == ft.Colors.BLUE  # Selected
-    elif hasattr(hand_btn, "color"):
-        assert getattr(hand_btn, "color") == ft.Colors.BLUE  # Selected
+    if hasattr(selection_btn, "icon_color"):
+        assert getattr(selection_btn, "icon_color") == ft.Colors.BLUE  # Selected
+    elif hasattr(selection_btn, "color"):
+        assert getattr(selection_btn, "color") == ft.Colors.BLUE  # Selected
     else:
         raise AttributeError(
-            f"Button does not have 'icon_color' or 'color' attribute, got attributes: {dir(hand_btn)}"
+            f"Button does not have 'icon_color' or 'color' attribute, got attributes: {dir(selection_btn)}"
         )
 
     # Change state externally
@@ -88,20 +90,20 @@ def test_toolbar_updates_ui_on_state_change():
     app_state.set_tool(ToolType.PEN)
 
     # Now check UI
-    hand_btn = toolbar.content.controls[0]
+    selection_btn = toolbar.content.controls[0]
     pen_btn = toolbar.content.controls[2]
 
     is_dark = app_state.theme_mode == "dark"
     unselected_color = ft.Colors.WHITE if is_dark else ft.Colors.BLACK
 
-    if hasattr(hand_btn, "icon_color"):
-        assert getattr(hand_btn, "icon_color") == unselected_color
+    if hasattr(selection_btn, "icon_color"):
+        assert getattr(selection_btn, "icon_color") == unselected_color
         assert getattr(pen_btn, "icon_color") == ft.Colors.BLUE
-    elif hasattr(hand_btn, "color"):
-        assert getattr(hand_btn, "color") == unselected_color
+    elif hasattr(selection_btn, "color"):
+        assert getattr(selection_btn, "color") == unselected_color
         assert getattr(pen_btn, "color") == ft.Colors.BLUE
 
     else:
         raise AttributeError(
-            f"Button does not have 'icon_color' or 'color' attribute, got attributes: {dir(hand_btn)}"
+            f"Button does not have 'icon_color' or 'color' attribute, got attributes: {dir(selection_btn)}"
         )

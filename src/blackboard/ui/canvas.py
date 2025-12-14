@@ -22,7 +22,6 @@ from .tools.polygon_tool import PolygonTool
 from .tools.pen_tool import PenTool
 from .tools.eraser_tool import EraserTool
 from .tools.selection_tool import SelectionTool
-from .tools.hand_tool import HandTool
 from .tools.box_selection_tool import BoxSelectionTool
 
 
@@ -38,7 +37,6 @@ class BlackboardCanvas(cv.Canvas):
             ToolType.PEN: PenTool(self),
             ToolType.ERASER: EraserTool(self),
             ToolType.SELECTION: SelectionTool(self),
-            ToolType.HAND: HandTool(self),
             ToolType.BOX_SELECTION: BoxSelectionTool(self),
         }
 
@@ -372,127 +370,6 @@ class BlackboardCanvas(cv.Canvas):
 
         canvas_shapes.append(cv.Line(sx2, sy2, ax1, ay1, paint=paint))
         canvas_shapes.append(cv.Line(sx2, sy2, ax2, ay2, paint=paint))
-
-    def hit_test(self, wx, wy, exclude_ids=None):
-        if exclude_ids is None:
-            exclude_ids = set()
-        else:
-            exclude_ids = set(exclude_ids)
-
-        for shape in reversed(self.app_state.shapes):
-            if shape.id in exclude_ids:
-                continue
-
-            if isinstance(shape, Rectangle):
-                if (
-                    shape.x <= wx <= shape.x + shape.width
-                    and shape.y <= wy <= shape.y + shape.height
-                ):
-                    return shape
-            elif isinstance(shape, Circle):
-                rx = shape.radius_x
-                ry = shape.radius_y
-                if rx == 0 or ry == 0:
-                    continue
-                cx = shape.x + rx
-                cy = shape.y + ry
-                dx = wx - cx
-                dy = wy - cy
-                if (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1:
-                    return shape
-            elif isinstance(shape, Line):
-                x1, y1 = shape.x, shape.y
-                x2, y2 = shape.end_x, shape.end_y
-                l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
-                if l2 == 0:
-                    if math.sqrt((wx - x1) ** 2 + (wy - y1) ** 2) < 5:
-                        return shape
-                    continue
-                t = ((wx - x1) * (x2 - x1) + (wy - y1) * (y2 - y1)) / l2
-                t = max(0, min(1, t))
-                px = x1 + t * (x2 - x1)
-                py = y1 + t * (y2 - y1)
-                if math.sqrt((wx - px) ** 2 + (wy - py) ** 2) < 5 / self.app_state.zoom:
-                    return shape
-            elif isinstance(shape, Text):
-                if (
-                    shape.x
-                    <= wx
-                    <= shape.x + (len(shape.content) * shape.font_size * 0.6)
-                    and shape.y <= wy <= shape.y + shape.font_size
-                ):
-                    return shape
-            elif isinstance(shape, Path):
-                if not shape.points:
-                    continue
-                threshold = 10 / self.app_state.zoom
-                # Check points
-                for px, py in shape.points:
-                    if math.hypot(wx - px, wy - py) < threshold:
-                        return shape
-                # Check segments
-                for i in range(len(shape.points) - 1):
-                    p1 = shape.points[i]
-                    p2 = shape.points[i + 1]
-                    x1, y1 = p1
-                    x2, y2 = p2
-                    l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
-                    if l2 == 0:
-                        continue
-                    t = ((wx - x1) * (x2 - x1) + (wy - y1) * (y2 - y1)) / l2
-                    t = max(0, min(1, t))
-                    px_proj = x1 + t * (x2 - x1)
-                    py_proj = y1 + t * (y2 - y1)
-                    if (
-                        math.sqrt((wx - px_proj) ** 2 + (wy - py_proj) ** 2)
-                        < 5 / self.app_state.zoom
-                    ):
-                        return shape
-            elif isinstance(shape, Polygon):
-                # Point in polygon
-                n = len(shape.points)
-                inside = False
-                p1x, p1y = shape.points[0]
-                for i in range(n + 1):
-                    p2x, p2y = shape.points[i % n]
-                    if wy > min(p1y, p2y):
-                        if wy <= max(p1y, p2y):
-                            if wx <= max(p1x, p2x):
-                                if p1y != p2y:
-                                    xinters = (wy - p1y) * (p2x - p1x) / (
-                                        p2y - p1y
-                                    ) + p1x
-                                    if p1x == p2x or wx <= xinters:
-                                        inside = not inside
-                    p1x, p1y = p2x, p2y
-                if inside:
-                    return shape
-            elif isinstance(shape, Group):
-                # Check children. If we hit a child, we return the GROUP.
-                # Because selection should select the group, not the child.
-                # BUT, we might want to support deep selection later (e.g. ctrl+click).
-                # For now, standard behavior: click child -> select group.
-
-                # We need to use hit_test logic recursively but we can't easily call self.hit_test
-                # because we need to check against children list, not app_state.shapes.
-
-                # Simple recursion helper
-                for child in reversed(shape.children):
-                    # We can reuse the logic by temporarily mocking app_state.shapes? No that's messy.
-                    # Ideally we refactor hit_test to take a list of shapes.
-                    # For now, let's just duplicate the logic check or extract it.
-                    # Or, better: Refactor hit_test to accept a list of shapes to test against.
-                    pass
-
-                # Since we haven't refactored hit_test yet, let's do a quick hack:
-                # Iterate children and assume standard hit testing rules.
-                # But wait, Group children are standard shapes.
-                # So we can extract the hit test logic into a static method or helper?
-
-                # Let's refactor hit_test to accept a list of shapes!
-                pass
-
-        return None
 
     def _hit_test_shapes(self, shapes, wx, wy):
         """Helper to hit test a specific list of shapes."""

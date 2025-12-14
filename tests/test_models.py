@@ -48,7 +48,6 @@ def test_path_defaults():
 
 
 def test_tool_types():
-    assert ToolType.HAND.value == "hand"
     assert ToolType.SELECTION.value == "selection"
     assert ToolType.LINE.value == "line"
     assert ToolType.RECTANGLE.value == "rectangle"

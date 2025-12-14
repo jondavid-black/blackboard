@@ -5,7 +5,6 @@ from typing import List, Tuple
 
 
 class ToolType(Enum):
-    HAND = "hand"
     SELECTION = "selection"
     LINE = "line"
     RECTANGLE = "rectangle"

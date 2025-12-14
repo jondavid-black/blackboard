@@ -24,7 +24,7 @@ class AppState:
         loaded_shapes, view_data = self.storage.load_data()
         self.shapes = loaded_shapes
 
-        self.current_tool: ToolType = ToolType.HAND
+        self.current_tool: ToolType = ToolType.SELECTION
 
         # Canvas transformation
         self.pan_x: float = view_data.get("pan_x", 0.0)
@@ -69,11 +69,7 @@ class AppState:
     def set_tool(self, tool: ToolType):
         self.current_tool = tool
         # Clear selection when switching to drawing tools
-        if (
-            tool != ToolType.SELECTION
-            and tool != ToolType.HAND
-            and tool != ToolType.BOX_SELECTION
-        ):
+        if tool != ToolType.SELECTION and tool != ToolType.BOX_SELECTION:
             self.selected_shape_ids.clear()
         self.notify()
 
