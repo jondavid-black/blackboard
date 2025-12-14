@@ -1,30 +1,30 @@
 {
   "view": {
-    "pan_x": 822.0204347096875,
-    "pan_y": 352.3022445044146,
+    "pan_x": 674.8204347096874,
+    "pan_y": 412.3022445044146,
     "zoom": 1.4611511582060084
   },
   "shapes": [
     {
       "id": "1",
       "type": "rectangle",
-      "x": -73.65455251174913,
-      "y": -67.55101547850845,
+      "x": -205.05779503166494,
+      "y": -138.72777184346285,
       "stroke_color": "",
       "stroke_width": 2.0,
       "filled": true,
-      "fill_color": "red",
+      "fill_color": "green",
       "stroke_dash_array": null,
       "opacity": 1.0,
       "stroke_join": "miter",
-      "width": 50.80374188177018,
-      "height": 57.84052910052107
+      "width": 74.8943363437547,
+      "height": 55.102961548022826
     },
     {
       "id": "2",
       "type": "rectangle",
-      "x": -47.921417518265656,
-      "y": -33.05766431703055,
+      "x": -167.27936280718907,
+      "y": -97.66425855598914,
       "stroke_color": "",
       "stroke_width": 2.0,
       "filled": true,
@@ -32,8 +32,8 @@
       "stroke_dash_array": null,
       "opacity": 1.0,
       "stroke_join": "miter",
-      "width": 42.735796035281766,
-      "height": 42.10739410703754
+      "width": 60.803741881770115,
+      "height": 27.872042834046663
     },
     {
       "id": "4",

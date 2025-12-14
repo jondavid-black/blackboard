@@ -190,9 +190,6 @@ class StorageService:
         try:
             with open(self.current_file, "w") as f:
                 json.dump(full_data, f, indent=2)
-            print(
-                f"Saved {len(shapes)} shapes and view settings to {self.current_file}"
-            )
         except IOError as e:
             print(f"Error saving file: {e}")
 

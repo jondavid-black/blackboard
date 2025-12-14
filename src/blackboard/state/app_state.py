@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional, TYPE_CHECKING
+from typing import List, Callable, Optional, TYPE_CHECKING, Tuple
 from ..models import Shape, ToolType, Line, Polygon, Group
 from ..storage.storage_service import StorageService
 from ..storage.exporter import Exporter
@@ -55,6 +55,9 @@ class AppState:
 
         # Drag State
         self.dragging_shape_id: Optional[str] = None
+
+        # UI State
+        self.expanded_group_ids: set[str] = set()
 
     def start_drag(self, shape_id: str):
         self.dragging_shape_id = shape_id
@@ -538,6 +541,13 @@ class AppState:
             self.active_drawer_tab = tab_index
         self.notify()
 
+    def toggle_group_expansion(self, group_id: str):
+        if group_id in self.expanded_group_ids:
+            self.expanded_group_ids.remove(group_id)
+        else:
+            self.expanded_group_ids.add(group_id)
+        self.notify()
+
     def group_selection(self):
         if not self.selected_shape_ids or len(self.selected_shape_ids) < 2:
             return
@@ -623,6 +633,30 @@ class AppState:
         self.selected_shape_ids = new_selection
         self.notify(save=True)
 
+    def _find_shape_location(
+        self, shape_id: str, current_list: Optional[List[Shape]] = None
+    ) -> Tuple[Optional[List[Shape]], int]:
+        """
+        Recursively searches for a shape_id.
+        Returns (parent_list, index_in_parent).
+        """
+        if current_list is None:
+            current_list = self.shapes
+
+        for i, shape in enumerate(current_list):
+            if shape.id == shape_id:
+                return current_list, i
+
+            if isinstance(shape, Group):
+                # Recurse
+                found_list, found_idx = self._find_shape_location(
+                    shape_id, shape.children
+                )
+                if found_list is not None:
+                    return found_list, found_idx
+
+        return None, -1
+
     def update_selected_shapes_properties(self, **properties):
         """
         Updates properties for all selected shapes.
@@ -645,87 +679,155 @@ class AppState:
             self.notify(save=True)
 
     def move_shape_forward(self, shape_id: str):
-        idx = -1
-        for i, s in enumerate(self.shapes):
-            if s.id == shape_id:
-                idx = i
-                break
+        target_list, idx = self._find_shape_location(shape_id)
 
-        if idx != -1 and idx < len(self.shapes) - 1:
+        if target_list is None or idx == -1:
+            return
+
+        if idx < len(target_list) - 1:
             self.snapshot()
-            self.shapes[idx], self.shapes[idx + 1] = (
-                self.shapes[idx + 1],
-                self.shapes[idx],
+            target_list[idx], target_list[idx + 1] = (
+                target_list[idx + 1],
+                target_list[idx],
             )
             self.notify(save=True)
 
     def move_shape_backward(self, shape_id: str):
-        idx = -1
-        for i, s in enumerate(self.shapes):
-            if s.id == shape_id:
-                idx = i
-                break
+        target_list, idx = self._find_shape_location(shape_id)
+
+        if target_list is None or idx == -1:
+            return
 
         if idx > 0:
             self.snapshot()
-            self.shapes[idx], self.shapes[idx - 1] = (
-                self.shapes[idx - 1],
-                self.shapes[idx],
+            target_list[idx], target_list[idx - 1] = (
+                target_list[idx - 1],
+                target_list[idx],
             )
             self.notify(save=True)
 
     def move_shape_to_front(self, shape_id: str):
-        idx = -1
-        for i, s in enumerate(self.shapes):
-            if s.id == shape_id:
-                idx = i
-                break
+        target_list, idx = self._find_shape_location(shape_id)
 
-        if idx != -1 and idx < len(self.shapes) - 1:
+        if target_list is None or idx == -1:
+            return
+
+        if idx < len(target_list) - 1:
             self.snapshot()
-            shape = self.shapes.pop(idx)
-            self.shapes.append(shape)
+            shape = target_list.pop(idx)
+            target_list.append(shape)
             self.notify(save=True)
 
     def move_shape_to_back(self, shape_id: str):
-        idx = -1
-        for i, s in enumerate(self.shapes):
-            if s.id == shape_id:
-                idx = i
-                break
+        target_list, idx = self._find_shape_location(shape_id)
+
+        if target_list is None or idx == -1:
+            return
 
         if idx > 0:
             self.snapshot()
-            shape = self.shapes.pop(idx)
-            self.shapes.insert(0, shape)
+            shape = target_list.pop(idx)
+            target_list.insert(0, shape)
             self.notify(save=True)
 
     def reorder_shape(self, source_id: str, target_id: str):
         """
         Moves source shape to be at the position of target shape.
+        Handles nested shapes inside groups.
         """
         if source_id == target_id:
             return
 
-        source_idx = -1
-        target_idx = -1
-        for i, s in enumerate(self.shapes):
-            if s.id == source_id:
-                source_idx = i
-            if s.id == target_id:
-                target_idx = i
+        # Find the lists containing the shapes
+        source_list, source_idx = self._find_shape_location(source_id)
+        target_list, target_idx = self._find_shape_location(target_id)
 
-        if source_idx == -1 or target_idx == -1:
+        if source_list is None or target_list is None:
+            # Should not happen if IDs are valid
+            return
+
+        # Check for recursive move (moving a parent into its own child)
+        # If source is a Group, we check if target is inside it
+        source_shape = source_list[source_idx]
+        if isinstance(source_shape, Group):
+            # Try to find target inside the source group's children
+            found_list, _ = self._find_shape_location(target_id, source_shape.children)
+            if found_list is not None:
+                return
+
+        self.snapshot()
+
+        # Pop from the source list
+        shape = source_list.pop(source_idx)
+
+        # If we are in the same list and we popped from before target,
+        # target_idx has shifted down by 1
+        if source_list is target_list and source_idx < target_idx:
+            target_idx -= 1
+
+        # Insert at the target index + 1
+        target_list.insert(target_idx + 1, shape)
+        self.notify(save=True)
+
+    def move_shape_into_group(self, source_id: str, group_id: str):
+        """
+        Moves source shape to the end of target group's children.
+        """
+        if source_id == group_id:
+            return
+
+        # Find source
+        source_list, source_idx = self._find_shape_location(source_id)
+        if source_list is None:
+            return
+
+        # Find target group
+        # We need the group object, not just its location
+        # Since _find_shape_location returns list/index, we can get it
+        group_list, group_idx = self._find_shape_location(group_id)
+        if group_list is None:
+            return
+
+        target_group = group_list[group_idx]
+        if not isinstance(target_group, Group):
+            return
+
+        # Prevent recursive move
+        if isinstance(source_list[source_idx], Group):
+            # Check if target_group is inside source
+            # (Simple check: is source an ancestor of target?)
+            # Actually, if we are moving source INTO target, source becomes a child of target.
+            # We just need to ensure target is not currently a child of source.
+            # We can reuse the check from reorder_shape or similar.
+            found, _ = self._find_shape_location(
+                target_group.id, source_list[source_idx].children
+            )
+            if found:
+                return
+
+        self.snapshot()
+
+        shape = source_list.pop(source_idx)
+        target_group.children.append(shape)
+
+        # Ensure group is expanded so user sees the drop
+        self.expanded_group_ids.add(target_group.id)
+
+        self.notify(save=True)
+
+    def move_shape_to_root_end(self, source_id: str):
+        """
+        Moves shape to the bottom (start) of the root list.
+        """
+        source_list, source_idx = self._find_shape_location(source_id)
+        if source_list is None:
             return
 
         self.snapshot()
-        shape = self.shapes.pop(source_idx)
-        # If we popped from before target, target_idx has shifted down by 1
-        if source_idx < target_idx:
-            target_idx -= 1
-
-        # We insert at the target index + 1 (Visual Above / Higher Z-index)
-        self.shapes.insert(target_idx + 1, shape)
+        shape = source_list.pop(source_idx)
+        # "Bottom" of the list visually is the start of the list (index 0)
+        # because we render in reverse.
+        self.shapes.insert(0, shape)
         self.notify(save=True)
 
     def close_drawer(self):
