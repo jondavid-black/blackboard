@@ -5,6 +5,7 @@ from blackboard.state.app_state import AppState
 from blackboard.models import ToolType, Rectangle
 from conftest import MockStorageService
 
+
 def test_canvas_resize_feedback_with_shift():
     """
     Verify that when resizing a selected shape with Shift held,
@@ -12,7 +13,7 @@ def test_canvas_resize_feedback_with_shift():
     """
     storage = MockStorageService()
     app_state = AppState(storage_service=storage)
-    app_state.theme_mode = "dark" # Default color: White
+    app_state.theme_mode = "dark"  # Default color: White
 
     # 1. Add a rectangle
     rect = Rectangle(x=100, y=100, width=100, height=100)
@@ -24,7 +25,7 @@ def test_canvas_resize_feedback_with_shift():
 
     canvas = BlackboardCanvas(app_state)
     canvas.update = lambda: None
-    canvas.did_mount() # register listener
+    canvas.did_mount()  # register listener
 
     # 3. Start drag on Bottom-Right handle
     e_start = MagicMock(spec=ft.DragStartEvent)
@@ -46,7 +47,7 @@ def test_canvas_resize_feedback_with_shift():
     cv_rect = canvas.shapes[0]
     assert isinstance(cv_rect, ft.canvas.Rect)
     assert cv_rect.paint.color == ft.Colors.CYAN
-    
+
     # 6. Release Shift
     app_state.set_shift_key(False)
     canvas._on_state_change()

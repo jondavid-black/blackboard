@@ -13,6 +13,7 @@ class ToolType(Enum):
     TEXT = "text"
     PEN = "pen"
     ERASER = "eraser"
+    POLYGON = "polygon"
 
 
 @dataclass
@@ -72,3 +73,12 @@ class Text(Shape):
 class Path(Shape):
     type: str = "path"
     points: List[Tuple[float, float]] = field(default_factory=list)
+
+
+@dataclass
+class Polygon(Shape):
+    type: str = "polygon"
+    points: List[Tuple[float, float]] = field(default_factory=list)
+    polygon_type: str = (
+        "triangle"  # triangle, diamond, pentagon, hexagon, octagon, star
+    )

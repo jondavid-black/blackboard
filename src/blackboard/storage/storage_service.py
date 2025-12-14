@@ -2,8 +2,9 @@ import json
 import os
 import threading
 from typing import List, Dict, Any, Optional, Tuple
-from ..models import Shape, Line, Rectangle, Circle, Text, Path
+from ..models import Shape, Line, Rectangle, Circle, Text, Path, Polygon
 import dataclasses
+
 
 DATA_DIR = "data"
 DEFAULT_FILE = "default.json"
@@ -220,5 +221,9 @@ class StorageService:
             if "points" in data:
                 data["points"] = [tuple(p) for p in data["points"]]
             return Path(**data)
+        elif shape_type == "polygon":
+            if "points" in data:
+                data["points"] = [tuple(p) for p in data["points"]]
+            return Polygon(**data)
         else:
             return Shape(**data)

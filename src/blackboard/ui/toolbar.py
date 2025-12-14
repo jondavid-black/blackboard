@@ -59,6 +59,7 @@ class Toolbar(ft.Container):
                 self._build_tool_button(ToolType.LINE, ft.Icons.SHOW_CHART),
                 self._build_tool_button(ToolType.RECTANGLE, ft.Icons.CROP_SQUARE),
                 self._build_tool_button(ToolType.CIRCLE, ft.Icons.CIRCLE_OUTLINED),
+                self._build_tool_button(ToolType.POLYGON, ft.Icons.CHANGE_HISTORY),
                 self._build_tool_button(ToolType.TEXT, ft.Icons.TEXT_FIELDS),
                 ft.VerticalDivider(),
                 ft.IconButton(
@@ -90,6 +91,41 @@ class Toolbar(ft.Container):
         icon_color_default = ft.Colors.WHITE if is_dark else ft.Colors.BLACK
         bg_color_selected = ft.Colors.BLUE_900 if is_dark else ft.Colors.BLUE_50
 
+        if tool_type == ToolType.POLYGON:
+            # Dropdown/Popup menu for shapes
+            return ft.PopupMenuButton(
+                icon=icon,
+                icon_color=ft.Colors.BLUE if is_selected else icon_color_default,
+                bgcolor=bg_color_selected if is_selected else None,
+                tooltip="Shapes",
+                items=[
+                    ft.PopupMenuItem(
+                        text="Triangle",
+                        on_click=lambda _: self._select_polygon("triangle"),
+                    ),
+                    ft.PopupMenuItem(
+                        text="Diamond",
+                        on_click=lambda _: self._select_polygon("diamond"),
+                    ),
+                    ft.PopupMenuItem(
+                        text="Pentagon",
+                        on_click=lambda _: self._select_polygon("pentagon"),
+                    ),
+                    ft.PopupMenuItem(
+                        text="Hexagon",
+                        on_click=lambda _: self._select_polygon("hexagon"),
+                    ),
+                    ft.PopupMenuItem(
+                        text="Octagon",
+                        on_click=lambda _: self._select_polygon("octagon"),
+                    ),
+                    ft.PopupMenuItem(
+                        text="Star",
+                        on_click=lambda _: self._select_polygon("star"),
+                    ),
+                ],
+            )
+
         return ft.IconButton(
             icon=icon,
             icon_color=ft.Colors.BLUE if is_selected else icon_color_default,
@@ -98,3 +134,7 @@ class Toolbar(ft.Container):
             tooltip=tool_type.value.capitalize(),
             mouse_cursor=ft.MouseCursor.CLICK,
         )
+
+    def _select_polygon(self, poly_type):
+        self.app_state.set_polygon_type(poly_type)
+        self.app_state.set_tool(ToolType.POLYGON)

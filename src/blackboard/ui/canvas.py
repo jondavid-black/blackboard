@@ -2,7 +2,7 @@ import flet as ft
 import flet.canvas as cv
 import math
 from ..state.app_state import AppState
-from ..models import ToolType, Shape, Line, Rectangle, Circle, Text, Path
+from ..models import ToolType, Shape, Line, Rectangle, Circle, Text, Path, Polygon
 
 
 class BlackboardCanvas(cv.Canvas):
@@ -55,6 +55,7 @@ class BlackboardCanvas(cv.Canvas):
         self.moving_shape_initial_y = 0
         self.moving_shape_initial_end_x = 0  # For Line
         self.moving_shape_initial_end_y = 0  # For Line
+        self.moving_shape_initial_points = []  # For Polygon
         self.resize_handle = None
         self.resizing_shape = None
 
@@ -317,6 +318,83 @@ class BlackboardCanvas(cv.Canvas):
                     )
                 )
 
+            elif isinstance(shape, Polygon):
+                if not shape.points:
+                    continue
+
+                points = [
+                    ft.Offset(x, y)
+                    for x, y in [self.to_screen(px, py) for px, py in shape.points]
+                ]
+
+                # Ensure it's closed
+                if len(points) > 2:
+                    points.append(points[0])
+
+                canvas_shapes.append(
+                    cv.Points(
+                        points=points,  # type: ignore
+                        point_mode=cv.PointMode.POLYGON,
+                        paint=paint,
+                    )
+                )
+
+                # Draw handles if selected (similar to Rectangle/Circle bounding box)
+                if self.app_state.selected_shape_id == shape.id:
+                    handle_paint = ft.Paint(
+                        color=ft.Colors.BLUE, style=ft.PaintingStyle.FILL
+                    )
+                    handle_size = 8
+                    hs = handle_size / 2
+
+                    # Calculate bounding box of polygon
+                    xs = [p[0] for p in shape.points]
+                    ys = [p[1] for p in shape.points]
+                    min_x, max_x = min(xs), max(xs)
+                    min_y, max_y = min(ys), max(ys)
+
+                    sx1, sy1 = self.to_screen(min_x, min_y)
+                    w = (max_x - min_x) * self.app_state.zoom
+                    h = (max_y - min_y) * self.app_state.zoom
+
+                    # 4 Corners of bounding box
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx1 - hs,
+                            sy1 - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # TL
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx1 + w - hs,
+                            sy1 - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # TR
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx1 - hs,
+                            sy1 + h - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # BL
+                    canvas_shapes.append(
+                        cv.Rect(
+                            sx1 + w - hs,
+                            sy1 + h - hs,
+                            handle_size,
+                            handle_size,
+                            paint=handle_paint,
+                        )
+                    )  # BR
+
         self.shapes = canvas_shapes
         self.update()
 
@@ -358,6 +436,30 @@ class BlackboardCanvas(cv.Canvas):
             y1 = shape.y
             x2 = x1 + w
             y2 = y1 + h
+
+            if math.hypot(wx - x1, wy - y1) < threshold:
+                return "tl"
+            if math.hypot(wx - x2, wy - y1) < threshold:
+                return "tr"
+            if math.hypot(wx - x1, wy - y2) < threshold:
+                return "bl"
+            if math.hypot(wx - x2, wy - y2) < threshold:
+                return "br"
+
+        elif isinstance(shape, Polygon):
+            # Similar to Circle/Rectangle, use bounding box
+            xs = [p[0] for p in shape.points]
+            ys = [p[1] for p in shape.points]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+
+            w = max_x - min_x
+            h = max_y - min_y
+
+            x1 = min_x
+            y1 = min_y
+            x2 = min_x + w
+            y2 = min_y + h
 
             if math.hypot(wx - x1, wy - y1) < threshold:
                 return "tl"
@@ -468,6 +570,28 @@ class BlackboardCanvas(cv.Canvas):
                     if dist < 5 / self.app_state.zoom:
                         return shape
 
+            elif isinstance(shape, Polygon):
+                # Ray casting algorithm for point in polygon
+                # https://en.wikipedia.org/wiki/Point_in_polygon
+                n = len(shape.points)
+                inside = False
+                p1x, p1y = shape.points[0]
+                for i in range(n + 1):
+                    p2x, p2y = shape.points[i % n]
+                    if wy > min(p1y, p2y):
+                        if wy <= max(p1y, p2y):
+                            if wx <= max(p1x, p2x):
+                                if p1y != p2y:
+                                    xinters = (wy - p1y) * (p2x - p1x) / (
+                                        p2y - p1y
+                                    ) + p1x
+                                    if p1x == p2x or wx <= xinters:
+                                        inside = not inside
+                    p1x, p1y = p2x, p2y
+
+                if inside:
+                    return shape
+
         return None
 
     def on_pan_start(self, e: ft.DragStartEvent):
@@ -537,6 +661,8 @@ class BlackboardCanvas(cv.Canvas):
                 if isinstance(hit_shape, Line):
                     self.moving_shape_initial_end_x = hit_shape.end_x
                     self.moving_shape_initial_end_y = hit_shape.end_y
+                elif isinstance(hit_shape, Polygon):
+                    self.moving_shape_initial_points = list(hit_shape.points)
             else:
                 self.app_state.select_shape(None)
                 # Fallback to pan if background clicked? Or box select.
@@ -577,6 +703,28 @@ class BlackboardCanvas(cv.Canvas):
             # Initial click is the top-left corner (or anchor point)
             self.current_drawing_shape = Circle(
                 x=wx, y=wy, radius_x=0, radius_y=0, stroke_color=color
+            )
+            self.app_state.add_shape(self.current_drawing_shape)
+
+        elif self.app_state.current_tool == ToolType.POLYGON:
+            color = (
+                ft.Colors.WHITE
+                if self.app_state.theme_mode == "dark"
+                else ft.Colors.BLACK
+            )
+            # Create a Polygon with 0 size initially at click point.
+            # Points will be generated in on_pan_update.
+            # We store the center as the first point for now, or just empty?
+            # Better to store initial center (wx, wy) in shape.x/y for reference during drag?
+            # The Polygon shape class doesn't strictly use x/y for position (it uses points),
+            # but we can use x/y as the "center" or "start anchor".
+            # Let's use x,y as center.
+            self.current_drawing_shape = Polygon(
+                x=wx,
+                y=wy,
+                points=[],
+                stroke_color=color,
+                polygon_type=self.app_state.selected_polygon_type,
             )
             self.app_state.add_shape(self.current_drawing_shape)
 
@@ -711,6 +859,53 @@ class BlackboardCanvas(cv.Canvas):
             # but update_shape calls notify(save=True) too.
             # This is fine.
 
+    def _generate_polygon_points(self, cx, cy, rx, ry, poly_type):
+        points = []
+
+        if poly_type == "triangle":
+            sides = 3
+            # Point up
+            start_angle = -math.pi / 2
+        elif poly_type == "diamond":
+            sides = 4
+            start_angle = -math.pi / 2
+        elif poly_type == "pentagon":
+            sides = 5
+            start_angle = -math.pi / 2
+        elif poly_type == "hexagon":
+            sides = 6
+            start_angle = -math.pi / 2
+        elif poly_type == "octagon":
+            sides = 8
+            start_angle = -math.pi / 2
+        elif poly_type == "star":
+            # Star is special
+            sides = 5
+            start_angle = -math.pi / 2
+            inner_radius_ratio = 0.4
+            step = math.pi / sides
+
+            for i in range(2 * sides):
+                angle = start_angle + i * step
+                r_x = rx if i % 2 == 0 else rx * inner_radius_ratio
+                r_y = ry if i % 2 == 0 else ry * inner_radius_ratio
+                px = cx + r_x * math.cos(angle)
+                py = cy + r_y * math.sin(angle)
+                points.append((px, py))
+            return points
+        else:
+            sides = 3
+            start_angle = -math.pi / 2
+
+        step = 2 * math.pi / sides
+        for i in range(sides):
+            angle = start_angle + i * step
+            px = cx + rx * math.cos(angle)
+            py = cy + ry * math.sin(angle)
+            points.append((px, py))
+
+        return points
+
     def update_active_interaction(self, wx, wy):
         if getattr(self, "_is_updating_interaction", False):
             return
@@ -782,6 +977,70 @@ class BlackboardCanvas(cv.Canvas):
                     shape.radius_x = (x2 - x1) / 2
                     shape.radius_y = (y2 - y1) / 2
 
+                elif isinstance(shape, Polygon):
+                    # Resize polygon via bounding box
+                    xs = [p[0] for p in shape.points]
+                    ys = [p[1] for p in shape.points]
+                    min_x, max_x = min(xs), max(xs)
+                    min_y, max_y = min(ys), max(ys)
+
+                    # Current bounding box
+                    old_w = max_x - min_x
+                    old_h = max_y - min_y
+                    old_cx = min_x + old_w / 2
+                    old_cy = min_y + old_h / 2
+
+                    # New bounding box coords
+                    nx1, ny1 = min_x, min_y
+                    nx2, ny2 = max_x, max_y
+
+                    if self.resize_handle == "tl":
+                        nx1, ny1 = wx, wy
+                    elif self.resize_handle == "tr":
+                        nx2, ny1 = wx, wy
+                    elif self.resize_handle == "bl":
+                        nx1, ny2 = wx, wy
+                    elif self.resize_handle == "br":
+                        nx2, ny2 = wx, wy
+
+                    # New dimensions
+                    new_w = nx2 - nx1
+                    new_h = ny2 - ny1
+
+                    # Avoid zero division
+                    if old_w == 0:
+                        old_w = 0.001
+                    if old_h == 0:
+                        old_h = 0.001
+
+                    scale_x = new_w / old_w
+                    scale_y = new_h / old_h
+
+                    # Center of new bounding box
+                    new_cx = nx1 + new_w / 2
+                    new_cy = ny1 + new_h / 2
+
+                    # Transform all points
+                    new_points = []
+                    for px, py in shape.points:
+                        # Normalize to center
+                        dx = px - old_cx
+                        dy = py - old_cy
+
+                        # Scale
+                        dx *= scale_x
+                        dy *= scale_y
+
+                        # Translate to new center
+                        new_px = new_cx + dx
+                        new_py = new_cy + dy
+                        new_points.append((new_px, new_py))
+
+                    shape.points = new_points
+                    # Update anchor x/y just in case
+                    shape.x = nx1
+                    shape.y = ny1
+
                 self.app_state.notify()
                 return
 
@@ -805,6 +1064,14 @@ class BlackboardCanvas(cv.Canvas):
                     if isinstance(shape, Line):
                         shape.end_x = self.moving_shape_initial_end_x + dx
                         shape.end_y = self.moving_shape_initial_end_y + dy
+                    elif isinstance(shape, Polygon):
+                        # Move all points relative to initial points
+                        if hasattr(self, "moving_shape_initial_points"):
+                            shape.points = [
+                                (px + dx, py + dy)
+                                for px, py in self.moving_shape_initial_points
+                            ]
+
                     self.app_state.notify()
             else:
                 # Pan logic handled in on_pan_update for now or here?
@@ -881,6 +1148,25 @@ class BlackboardCanvas(cv.Canvas):
 
                 self.current_drawing_shape.radius_x = rx
                 self.current_drawing_shape.radius_y = ry
+
+            elif isinstance(self.current_drawing_shape, Polygon):
+                # Anchor is center? Or TL?
+                # Let's assume click was CENTER.
+                cx = self.current_drawing_shape.x
+                cy = self.current_drawing_shape.y
+
+                rx = abs(wx - cx)
+                ry = abs(wy - cy)
+
+                if self.app_state.is_shift_down:
+                    r = max(rx, ry)
+                    rx = r
+                    ry = r
+
+                points = self._generate_polygon_points(
+                    cx, cy, rx, ry, self.current_drawing_shape.polygon_type
+                )
+                self.current_drawing_shape.points = points
 
             elif isinstance(self.current_drawing_shape, Path):
                 if (

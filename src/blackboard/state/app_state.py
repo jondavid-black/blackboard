@@ -18,6 +18,7 @@ class AppState:
         # Theme
         self.theme_mode: str = "dark"  # 'dark' or 'light'
         self.is_shift_down: bool = False
+        self.selected_polygon_type: str = "triangle"
 
         # Side Rail & Drawer
         self.active_drawer_tab: Optional[str] = None  # None means closed
@@ -75,6 +76,10 @@ class AppState:
 
     def set_theme_mode(self, mode: str):
         self.theme_mode = mode
+        self.notify()
+
+    def set_polygon_type(self, polygon_type: str):
+        self.selected_polygon_type = polygon_type
         self.notify()
 
     def set_shift_key(self, is_down: bool):
