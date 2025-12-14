@@ -36,6 +36,7 @@ class BlackboardCanvas(cv.Canvas):
                 on_pan_start=self.on_pan_start,
                 on_pan_update=self.on_pan_update,
                 on_pan_end=self.on_pan_end,
+                on_hover=self.on_hover,
                 on_scroll=self.on_scroll,
                 drag_interval=10,
                 mouse_cursor=ft.MouseCursor.BASIC,
@@ -62,6 +63,8 @@ class BlackboardCanvas(cv.Canvas):
         # Track last world coordinates for refreshing logic when modifier keys change
         self.last_wx = 0
         self.last_wy = 0
+        self.hover_wx = 0
+        self.hover_wy = 0
 
         self._is_updating_interaction = False
 
@@ -81,6 +84,77 @@ class BlackboardCanvas(cv.Canvas):
         sx = (wx * self.app_state.zoom) + self.app_state.pan_x
         sy = (wy * self.app_state.zoom) + self.app_state.pan_y
         return sx, sy
+
+    def get_anchors(self, shape: Shape):
+        anchors = []
+        if isinstance(shape, Rectangle):
+            x, y, w, h = shape.x, shape.y, shape.width, shape.height
+            anchors.extend(
+                [
+                    ("top_left", x, y),
+                    ("top_right", x + w, y),
+                    ("bottom_right", x + w, y + h),
+                    ("bottom_left", x, y + h),
+                    ("top_center", x + w / 2, y),
+                    ("right_center", x + w, y + h / 2),
+                    ("bottom_center", x + w / 2, y + h),
+                    ("left_center", x, y + h / 2),
+                ]
+            )
+        elif isinstance(shape, Circle):
+            # Bounding box logic for now
+            # Better: points on the circumference
+            # Top, Right, Bottom, Left
+            cx = shape.x + shape.radius_x
+            cy = shape.y + shape.radius_y
+            rx, ry = shape.radius_x, shape.radius_y
+            anchors.extend(
+                [
+                    ("top_center", cx, cy - ry),
+                    ("right_center", cx + rx, cy),
+                    ("bottom_center", cx, cy + ry),
+                    ("left_center", cx - rx, cy),
+                ]
+            )
+        elif isinstance(shape, Polygon):
+            # Vertices
+            for i, p in enumerate(shape.points):
+                anchors.append((f"vertex_{i}", p[0], p[1]))
+
+        return anchors
+
+    def _draw_anchors(
+        self, canvas_shapes, shape, threshold, check_hover_at_drag_end=False
+    ):
+        anchors = self.get_anchors(shape)
+        for anchor_id, ax, ay in anchors:
+            # Draw anchor point
+            asx, asy = self.to_screen(ax, ay)
+
+            # Check if hovering this anchor
+            # If check_hover_at_drag_end is True, we check against last_wx/wy (drag position)
+            # Otherwise we check against hover_wx/wy (mouse position)
+            # Actually, during drag, hover_wx might not be updating correctly or strictly?
+            # But usually drag updates last_wx.
+
+            target_wx, target_wy = (
+                (self.last_wx, self.last_wy)
+                if check_hover_at_drag_end
+                else (self.hover_wx, self.hover_wy)
+            )
+
+            is_hovered = math.hypot(target_wx - ax, target_wy - ay) < threshold
+
+            color = ft.Colors.RED if is_hovered else ft.Colors.BLUE
+
+            canvas_shapes.append(
+                cv.Circle(
+                    asx,
+                    asy,
+                    radius=4,
+                    paint=ft.Paint(style=ft.PaintingStyle.FILL, color=color),
+                )
+            )
 
     def _on_state_change(self):
         # Update logic if we are in the middle of an interaction and state changed (e.g. shift key)
@@ -104,6 +178,36 @@ class BlackboardCanvas(cv.Canvas):
         default_stroke_color = (
             ft.Colors.WHITE if self.app_state.theme_mode == "dark" else ft.Colors.BLACK
         )
+
+        # Hover logic for anchors
+        if self.app_state.current_tool == ToolType.LINE:
+            # Check if we are hovering a shape to show anchors
+            threshold = 10 / self.app_state.zoom
+
+            # Find shape under mouse
+            hit_shape = self.hit_test(self.hover_wx, self.hover_wy)
+
+            if hit_shape:
+                self._draw_anchors(canvas_shapes, hit_shape, threshold)
+
+            # ALSO show anchors for shape under drag end if we are dragging a line
+            if self.current_drawing_shape and isinstance(
+                self.current_drawing_shape, Line
+            ):
+                # We need to find the shape under the current end position
+                # self.last_wx, self.last_wy track the current drag position
+                end_shape = self.hit_test(
+                    self.last_wx,
+                    self.last_wy,
+                    exclude_ids={self.current_drawing_shape.id},
+                )
+                if end_shape and end_shape != hit_shape:
+                    self._draw_anchors(
+                        canvas_shapes,
+                        end_shape,
+                        threshold,
+                        check_hover_at_drag_end=True,
+                    )
 
         for shape in self.app_state.shapes:
             # Use shape color if set, otherwise default based on theme
@@ -146,12 +250,57 @@ class BlackboardCanvas(cv.Canvas):
 
             if self.app_state.selected_shape_id == shape.id:
                 paint.color = ft.Colors.BLUE
+                if self.app_state.is_shift_down:
+                    paint.color = ft.Colors.CYAN
                 paint.stroke_width = shape.stroke_width + 2
 
             if isinstance(shape, Line):
                 sx1, sy1 = self.to_screen(shape.x, shape.y)
                 sx2, sy2 = self.to_screen(shape.end_x, shape.end_y)
-                canvas_shapes.append(cv.Line(sx1, sy1, sx2, sy2, paint=paint))
+
+                line_type = getattr(shape, "line_type", "simple")
+
+                if line_type == "angle_connector":
+                    # Draw orthogonal connector (Z-shape or L-shape)
+                    # Simple heuristic: midpoint X
+                    mid_x = (sx1 + sx2) / 2
+
+                    # Points: (sx1, sy1) -> (mid_x, sy1) -> (mid_x, sy2) -> (sx2, sy2)
+                    canvas_shapes.append(cv.Line(sx1, sy1, mid_x, sy1, paint=paint))
+                    canvas_shapes.append(cv.Line(mid_x, sy1, mid_x, sy2, paint=paint))
+                    canvas_shapes.append(cv.Line(mid_x, sy2, sx2, sy2, paint=paint))
+
+                    # Add arrow head if it's implicitly an arrow?
+                    # Usually connectors have arrows. Let's assume Angle Connector has arrow at end?
+                    # The requirement "Angle Connector" doesn't explicitly say arrow, but usually it implies direction.
+                    # Let's add arrow head for consistency with "Connector" logic if we add it there.
+                    # For now, only if explicitly requested or let's stick to simple lines for Angle Connector unless specified.
+                    # Wait, "Arrow" is a separate type. "Angle Connector" is separate.
+                    # If the user wants an Arrow Angle Connector, that's a combo.
+                    # Current model only has one `line_type`.
+                    # Let's assume Connector types might need arrow heads?
+                    # Let's just draw lines for now.
+
+                else:
+                    # Simple, Arrow, Connector (straight)
+                    canvas_shapes.append(cv.Line(sx1, sy1, sx2, sy2, paint=paint))
+
+                    # Arrow head logic
+                    if line_type == "arrow":
+                        # Draw arrow head at end
+                        dx = sx2 - sx1
+                        dy = sy2 - sy1
+                        angle = math.atan2(dy, dx)
+                        arrow_len = 15
+                        arrow_angle = math.pi / 6
+
+                        ax1 = sx2 - arrow_len * math.cos(angle - arrow_angle)
+                        ay1 = sy2 - arrow_len * math.sin(angle - arrow_angle)
+                        ax2 = sx2 - arrow_len * math.cos(angle + arrow_angle)
+                        ay2 = sy2 - arrow_len * math.sin(angle + arrow_angle)
+
+                        canvas_shapes.append(cv.Line(sx2, sy2, ax1, ay1, paint=paint))
+                        canvas_shapes.append(cv.Line(sx2, sy2, ax2, ay2, paint=paint))
 
                 # Draw handles if selected
                 if self.app_state.selected_shape_id == shape.id:
@@ -472,9 +621,17 @@ class BlackboardCanvas(cv.Canvas):
 
         return None
 
-    def hit_test(self, wx, wy):
+    def hit_test(self, wx, wy, exclude_ids=None):
+        if exclude_ids is None:
+            exclude_ids = set()
+        else:
+            exclude_ids = set(exclude_ids)
+
         # Simple hit test
         for shape in reversed(self.app_state.shapes):
+            if shape.id in exclude_ids:
+                continue
+
             if isinstance(shape, Rectangle):
                 if (
                     shape.x <= wx <= shape.x + shape.width
@@ -678,8 +835,32 @@ class BlackboardCanvas(cv.Canvas):
                 if self.app_state.theme_mode == "dark"
                 else ft.Colors.BLACK
             )
+
+            # Check for start shape connection
+            start_shape = self.hit_test(wx, wy)
+            start_id = start_shape.id if start_shape else None
+            start_anchor_id = None
+
+            # Check for anchor snap on start
+            if start_shape:
+                threshold = 10 / self.app_state.zoom
+                anchors = self.get_anchors(start_shape)
+                for anchor_id, ax, ay in anchors:
+                    if math.hypot(wx - ax, wy - ay) < threshold:
+                        start_anchor_id = anchor_id
+                        # Snap start point
+                        wx, wy = ax, ay
+                        break
+
             self.current_drawing_shape = Line(
-                x=wx, y=wy, end_x=wx, end_y=wy, stroke_color=color
+                x=wx,
+                y=wy,
+                end_x=wx,
+                end_y=wy,
+                stroke_color=color,
+                line_type=getattr(self.app_state, "selected_line_type", "simple"),
+                start_shape_id=start_id,
+                start_anchor_id=start_anchor_id,
             )
             self.app_state.add_shape(self.current_drawing_shape)
 
@@ -753,6 +934,12 @@ class BlackboardCanvas(cv.Canvas):
 
     def on_pan_update(self, e: ft.DragUpdateEvent):
         wx, wy = self.to_world(e.local_x, e.local_y)
+        # Capture previous last_wx before updating it?
+        # Actually, self.last_wx is from the PREVIOUS call (or pan_start).
+        # So we can calculate delta BEFORE updating self.last_wx.
+        prev_wx = self.last_wx
+        prev_wy = self.last_wy
+
         self.last_wx = wx
         self.last_wy = wy
 
@@ -781,7 +968,7 @@ class BlackboardCanvas(cv.Canvas):
         # Logic for selection move doesn't depend on shift key (yet), so it's less critical.
         # But to be clean, let's delegate.
 
-        self.update_active_interaction(wx, wy)
+        self.update_active_interaction(wx, wy, prev_wx, prev_wy)
 
     def _erase_points_in_path(self, path: Path, wx: float, wy: float):
         # Eraser radius in world coordinates
@@ -906,16 +1093,16 @@ class BlackboardCanvas(cv.Canvas):
 
         return points
 
-    def update_active_interaction(self, wx, wy):
+    def update_active_interaction(self, wx, wy, prev_wx=None, prev_wy=None):
         if getattr(self, "_is_updating_interaction", False):
             return
         self._is_updating_interaction = True
         try:
-            self._update_active_interaction_internal(wx, wy)
+            self._update_active_interaction_internal(wx, wy, prev_wx, prev_wy)
         finally:
             self._is_updating_interaction = False
 
-    def _update_active_interaction_internal(self, wx, wy):
+    def _update_active_interaction_internal(self, wx, wy, prev_wx=None, prev_wy=None):
         if self.app_state.current_tool == ToolType.SELECTION:
             if self.resizing_shape:
                 # Handle resizing
@@ -1041,13 +1228,21 @@ class BlackboardCanvas(cv.Canvas):
                     shape.x = nx1
                     shape.y = ny1
 
-                self.app_state.notify()
+                self.app_state.update_shape(shape)
                 return
 
             if self.app_state.selected_shape_id:
                 # Move object
-                dx = wx - self.drag_start_wx
-                dy = wy - self.drag_start_wy
+                # Calculate frame delta
+                if prev_wx is not None and prev_wy is not None:
+                    dx = wx - prev_wx
+                    dy = wy - prev_wy
+                else:
+                    dx = 0
+                    dy = 0
+
+                if dx == 0 and dy == 0:
+                    return
 
                 # Find shape
                 shape = next(
@@ -1059,20 +1254,7 @@ class BlackboardCanvas(cv.Canvas):
                     None,
                 )
                 if shape:
-                    shape.x = self.moving_shape_initial_x + dx
-                    shape.y = self.moving_shape_initial_y + dy
-                    if isinstance(shape, Line):
-                        shape.end_x = self.moving_shape_initial_end_x + dx
-                        shape.end_y = self.moving_shape_initial_end_y + dy
-                    elif isinstance(shape, Polygon):
-                        # Move all points relative to initial points
-                        if hasattr(self, "moving_shape_initial_points"):
-                            shape.points = [
-                                (px + dx, py + dy)
-                                for px, py in self.moving_shape_initial_points
-                            ]
-
-                    self.app_state.notify()
+                    self.app_state.update_shape_position(shape, dx, dy)
             else:
                 # Pan logic handled in on_pan_update for now or here?
                 # e.local_x is not available here.
@@ -1178,12 +1360,51 @@ class BlackboardCanvas(cv.Canvas):
             self.app_state.notify()
 
     def on_pan_end(self, e: ft.DragEndEvent):
+        # Finalize connection if line tool
+        if self.app_state.current_tool == ToolType.LINE and isinstance(
+            self.current_drawing_shape, Line
+        ):
+            # Check for end shape connection
+            # Use last world coordinates from pan_update (self.last_wx, self.last_wy)
+            # But we should ignore the line itself being drawn
+            wx, wy = self.last_wx, self.last_wy
+
+            end_shape = self.hit_test(
+                wx, wy, exclude_ids={self.current_drawing_shape.id}
+            )
+
+            if end_shape:
+                self.current_drawing_shape.end_shape_id = end_shape.id
+
+                # Check for anchor snap on end
+                threshold = 10 / self.app_state.zoom
+                anchors = self.get_anchors(end_shape)
+                for anchor_id, ax, ay in anchors:
+                    if math.hypot(wx - ax, wy - ay) < threshold:
+                        self.current_drawing_shape.end_anchor_id = anchor_id
+                        # Snap end point
+                        self.current_drawing_shape.end_x = ax
+                        self.current_drawing_shape.end_y = ay
+                        break
+
+                self.app_state.notify()
+
         self.current_drawing_shape = None
         self.resize_handle = None
         self.resizing_shape = None
 
         # Reset shift key state on drag end to prevent stuck keys
         self.app_state.set_shift_key(False)
+
+    def on_hover(self, e: ft.HoverEvent):
+        # Update hover coordinates
+        # Note: e.local_x/y might need to be converted to world
+        # Flet HoverEvent has global_x, global_y, local_x, local_y
+        self.hover_wx, self.hover_wy = self.to_world(e.local_x, e.local_y)
+
+        # Trigger redraw to show anchors if line tool is active
+        if self.app_state.current_tool == ToolType.LINE:
+            self.app_state.notify()
 
     def on_scroll(self, e: ft.ScrollEvent):
         if e.scroll_delta_y is None:

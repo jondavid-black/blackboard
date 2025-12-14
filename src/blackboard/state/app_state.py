@@ -1,6 +1,9 @@
-from typing import List, Callable, Optional
-from ..models import Shape, ToolType
+from typing import List, Callable, Optional, TYPE_CHECKING
+from ..models import Shape, ToolType, Line, Polygon
 from ..storage.storage_service import StorageService
+
+if TYPE_CHECKING:
+    pass
 
 
 class AppState:
@@ -19,6 +22,7 @@ class AppState:
         self.theme_mode: str = "dark"  # 'dark' or 'light'
         self.is_shift_down: bool = False
         self.selected_polygon_type: str = "triangle"
+        self.selected_line_type: str = "simple"
 
         # Side Rail & Drawer
         self.active_drawer_tab: Optional[str] = None  # None means closed
@@ -56,10 +60,82 @@ class AppState:
                 self.selected_shape_id = None
             self.notify(save=True)
 
-    def update_shape(self, shape: Shape):
-        # In a real app, we might need to find and replace,
-        # but if we are modifying the object directly, we just need to notify.
-        self.notify(save=True)
+    def update_shape_position(
+        self, shape: Shape, dx: float, dy: float, save: bool = True
+    ):
+        """
+        Updates a shape's position and any connected lines.
+        """
+        # Update the shape itself
+        shape.x += dx
+        shape.y += dy
+
+        if isinstance(shape, Line):
+            shape.end_x += dx
+            shape.end_y += dy
+        elif isinstance(shape, Polygon):
+            new_points = [(px + dx, py + dy) for px, py in shape.points]
+            shape.points = new_points
+
+        # Update connected lines
+        self._update_connected_lines(shape, dx, dy)
+
+        self.notify(save=save)
+
+    def _update_connected_lines(self, moved_shape: Shape, dx: float, dy: float):
+        """
+        Finds all lines connected to moved_shape and updates their endpoints.
+        """
+        # For now, we just move the line endpoints by the same delta.
+        # Ideally, we would re-calculate the anchor position if an anchor ID is present.
+        # But since we don't have access to the Canvas logic (get_anchors) here easily,
+        # moving by delta keeps them "stuck" effectively if the shape moves rigidly.
+        #
+        # TODO: Refactor to allow recalculating anchor positions if the shape changes size (resize),
+        # not just position. For rigid movement, dx/dy is sufficient.
+
+        for s in self.shapes:
+            if isinstance(s, Line):
+                if s.start_shape_id == moved_shape.id:
+                    s.x += dx
+                    s.y += dy
+
+                if s.end_shape_id == moved_shape.id:
+                    s.end_x += dx
+                    s.end_y += dy
+
+    def update_shape(self, shape: Shape, save: bool = True):
+        # Update connected lines if they are attached to anchors
+        self._refresh_connected_lines(shape)
+        self.notify(save=save)
+
+    def _refresh_connected_lines(self, shape: Shape):
+        """
+        Updates endpoints of lines connected to 'shape' based on their anchor IDs.
+        This allows lines to stay attached correctly when a shape is resized.
+        """
+        # We need to look for lines connected to this shape
+        # and if they have an anchor_id, update their position.
+
+        # Pre-calculate anchors for the shape to avoid re-calculating for every line
+        anchors = shape.get_anchors()
+        anchor_map = {a[0]: (a[1], a[2]) for a in anchors}
+
+        for s in self.shapes:
+            if isinstance(s, Line):
+                # Check Start
+                if s.start_shape_id == shape.id and s.start_anchor_id:
+                    if s.start_anchor_id in anchor_map:
+                        ax, ay = anchor_map[s.start_anchor_id]
+                        s.x = ax
+                        s.y = ay
+
+                # Check End
+                if s.end_shape_id == shape.id and s.end_anchor_id:
+                    if s.end_anchor_id in anchor_map:
+                        ax, ay = anchor_map[s.end_anchor_id]
+                        s.end_x = ax
+                        s.end_y = ay
 
     def select_shape(self, shape_id: Optional[str]):
         self.selected_shape_id = shape_id
@@ -80,6 +156,10 @@ class AppState:
 
     def set_polygon_type(self, polygon_type: str):
         self.selected_polygon_type = polygon_type
+        self.notify()
+
+    def set_line_type(self, line_type: str):
+        self.selected_line_type = line_type
         self.notify()
 
     def set_shift_key(self, is_down: bool):
