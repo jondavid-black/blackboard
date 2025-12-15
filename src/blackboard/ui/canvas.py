@@ -241,6 +241,47 @@ class BlackboardCanvas(cv.Canvas):
 
         return paint
 
+    def _get_spline_elements(self, points, tension=0.05, closed=False):
+        if len(points) < 2:
+            return []
+
+        elements = []
+        elements.append(cv.Path.MoveTo(points[0][0], points[0][1]))
+
+        if len(points) == 2:
+            elements.append(cv.Path.LineTo(points[1][0], points[1][1]))
+            if closed:
+                elements.append(cv.Path.Close())
+            return elements
+
+        def get_pt(idx):
+            if idx < 0:
+                return points[idx % len(points)] if closed else points[0]
+            if idx >= len(points):
+                return points[idx % len(points)] if closed else points[-1]
+            return points[idx]
+
+        count = len(points) if closed else len(points) - 1
+
+        for i in range(count):
+            p0 = get_pt(i - 1)
+            p1 = get_pt(i)
+            p2 = get_pt(i + 1)
+            p3 = get_pt(i + 2)
+
+            cp1x = p1[0] + (p2[0] - p0[0]) * tension
+            cp1y = p1[1] + (p2[1] - p0[1]) * tension
+
+            cp2x = p2[0] - (p3[0] - p1[0]) * tension
+            cp2y = p2[1] - (p3[1] - p1[1]) * tension
+
+            elements.append(cv.Path.CubicTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]))
+
+        if closed:
+            elements.append(cv.Path.Close())
+
+        return elements
+
     def _draw_shape(self, canvas_shapes, shape, paint, final_color):
         # Handle Fill
         fill_paint = None
@@ -273,15 +314,29 @@ class BlackboardCanvas(cv.Canvas):
             w = shape.width * self.app_state.zoom
             h = shape.height * self.app_state.zoom
 
-            # Construct a Path for the rectangle to ensure stroke_join (corner style) works consistently
-            # IMPORTANT: For stroke_join to work, it must be a single continuous Path, not cv.Rect
-            path_elements = [
-                cv.Path.MoveTo(sx, sy),
-                cv.Path.LineTo(sx + w, sy),
-                cv.Path.LineTo(sx + w, sy + h),
-                cv.Path.LineTo(sx, sy + h),
-                cv.Path.Close(),
-            ]
+            tension = getattr(shape, "tension", 0.0)
+
+            if tension > 0:
+                # Treat rectangle corners as points for spline interpolation
+                rect_points = [
+                    (sx, sy),
+                    (sx + w, sy),
+                    (sx + w, sy + h),
+                    (sx, sy + h),
+                ]
+                path_elements = self._get_spline_elements(
+                    rect_points, tension=tension, closed=True
+                )
+            else:
+                # Construct a Path for the rectangle to ensure stroke_join (corner style) works consistently
+                # IMPORTANT: For stroke_join to work, it must be a single continuous Path, not cv.Rect
+                path_elements = [
+                    cv.Path.MoveTo(sx, sy),
+                    cv.Path.LineTo(sx + w, sy),
+                    cv.Path.LineTo(sx + w, sy + h),
+                    cv.Path.LineTo(sx, sy + h),
+                    cv.Path.Close(),
+                ]
 
             if fill_paint:
                 canvas_shapes.append(
@@ -339,14 +394,16 @@ class BlackboardCanvas(cv.Canvas):
         elif isinstance(shape, Path):
             if not shape.points:
                 return
-            points = [
-                ft.Offset(x, y)
-                for x, y in [self.to_screen(px, py) for px, py in shape.points]
-            ]
+            screen_points = [self.to_screen(px, py) for px, py in shape.points]
+
+            # Use spline interpolation for smoother paths
+            path_elements = self._get_spline_elements(
+                screen_points, tension=getattr(shape, "tension", 0.05), closed=False
+            )
+
             canvas_shapes.append(
-                cv.Points(
-                    points=points,  # type: ignore
-                    point_mode=cv.PointMode.POLYGON,
+                cv.Path(
+                    elements=path_elements,
                     paint=paint,
                 )
             )
@@ -359,13 +416,10 @@ class BlackboardCanvas(cv.Canvas):
             if not screen_points:
                 return
 
-            path_elements = []
-            path_elements.append(
-                cv.Path.MoveTo(screen_points[0][0], screen_points[0][1])
+            # Use spline interpolation for polygons too
+            path_elements = self._get_spline_elements(
+                screen_points, tension=getattr(shape, "tension", 0.05), closed=True
             )
-            for x, y in screen_points[1:]:
-                path_elements.append(cv.Path.LineTo(x, y))
-            path_elements.append(cv.Path.Close())
 
             if fill_paint:
                 canvas_shapes.append(

@@ -208,7 +208,7 @@ class AppState:
 
             # 3. Restore state
             self.shapes = [
-                self.storage._deserialize_shape(s)
+                self.storage._deserialize_shape(s) # type: ignore
                 for s in previous_state_data  # type: ignore
             ]
 

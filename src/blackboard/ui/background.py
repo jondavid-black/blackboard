@@ -91,10 +91,10 @@ class Background(ft.Stack):
 
         # We align to effective_spacing
         start_col = math.floor((-pan_x) / (zoom * effective_spacing))
-        end_col = math.ceil((width - pan_x) / (zoom * effective_spacing))
+        end_col = math.ceil((width - pan_x) / (zoom * effective_spacing)) # type: ignore
 
         start_row = math.floor((-pan_y) / (zoom * effective_spacing))
-        end_row = math.ceil((height - pan_y) / (zoom * effective_spacing))
+        end_row = math.ceil((height - pan_y) / (zoom * effective_spacing)) # type: ignore
 
         # Limit grid drawing just in case, but adaptive spacing should prevent this
         max_lines = 1000  # Increased safety limit since density is controlled

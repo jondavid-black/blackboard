@@ -324,6 +324,12 @@ class PropertiesDrawer(BaseDrawer):
         )
 
         if first_shape.type not in ["text", "line", "path"]:
+
+            def on_tension_change(e):
+                self.app_state.update_selected_shapes_properties(
+                    tension=float(e.control.value)
+                )
+
             controls.extend(
                 [
                     ft.Container(height=10),
@@ -336,6 +342,29 @@ class PropertiesDrawer(BaseDrawer):
                             ft.dropdown.Option("Bevel"),
                         ],
                         on_change=on_stroke_join_change,
+                    ),
+                ]
+            )
+
+        # Spline tension for Path and Polygon
+        if first_shape.type in ["path", "polygon", "rectangle"]:
+
+            def on_tension_change(e):
+                self.app_state.update_selected_shapes_properties(
+                    tension=float(e.control.value)
+                )
+
+            controls.extend(
+                [
+                    ft.Container(height=10),
+                    ft.Text("Spline Tension (0.0=Sharp, 0.5=Curvy)"),
+                    ft.Slider(
+                        min=0.0,
+                        max=1.0,
+                        divisions=100,
+                        value=getattr(first_shape, "tension", 0.05),
+                        label="{value}",
+                        on_change=on_tension_change,
                     ),
                 ]
             )

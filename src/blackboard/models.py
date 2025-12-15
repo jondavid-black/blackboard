@@ -62,6 +62,9 @@ class Rectangle(Shape):
     type: str = "rectangle"
     width: float = 0.0
     height: float = 0.0
+    tension: float = (
+        0.0  # Spline tension (0.0 = sharp/straight, >0.0 = rounded/organic)
+    )
 
     def get_anchors(self) -> List[Tuple[str, float, float]]:
         x, y, w, h = self.x, self.y, self.width, self.height
@@ -123,6 +126,7 @@ class Text(Shape):
 class Path(Shape):
     type: str = "path"
     points: List[Tuple[float, float]] = field(default_factory=list)
+    tension: float = 0.05  # Spline tension (0.0 = sharp, 0.5 = smooth/loose)
 
 
 @dataclass
@@ -132,6 +136,7 @@ class Polygon(Shape):
     polygon_type: str = (
         "triangle"  # triangle, diamond, pentagon, hexagon, octagon, star
     )
+    tension: float = 0.05  # Spline tension (0.0 = sharp, 0.5 = smooth/loose)
 
     def get_anchors(self) -> List[Tuple[str, float, float]]:
         anchors = []

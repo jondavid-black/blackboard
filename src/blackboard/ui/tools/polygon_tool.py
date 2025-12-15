@@ -62,10 +62,20 @@ class PolygonTool(BaseTool):
             start_angle = -math.pi / 2
         elif poly_type == "hexagon":
             sides = 6
-            start_angle = -math.pi / 2
+            # Align top segment horizontally
+            # Standard hexagon has vertex at top (-90 deg).
+            # To get flat top, we rotate by half a segment step.
+            # Step = 360/6 = 60 deg. Half step = 30 deg (pi/6).
+            # Start angle = -90 - 30 = -120 deg.
+            start_angle = -math.pi / 2 - (math.pi / 6)
         elif poly_type == "octagon":
             sides = 8
-            start_angle = -math.pi / 2
+            # Align top segment horizontally
+            # Standard octagon has vertex at top (-90 deg).
+            # To get flat top, we rotate by half a segment step.
+            # Step = 360/8 = 45 deg. Half step = 22.5 deg.
+            # Or simply: first vertex at -90 - 22.5 = -112.5 deg
+            start_angle = -math.pi / 2 - (math.pi / 8)
         elif poly_type == "star":
             # Star is special
             sides = 5
